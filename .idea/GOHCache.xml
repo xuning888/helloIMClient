@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="GoORMHelperCache">
+    <option name="schemaMapping">
+      <map>
+        <entry key="Chat">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/internal/im/chat.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="ChatMessage">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/internal/im/msg.go" />
+            </set>
+          </value>
+        </entry>
+        <entry key="User">
+          <value>
+            <set>
+              <option value="file://$PROJECT_DIR$/internal/im/user.go" />
+            </set>
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="scannedPathMapping">
+      <map>
+        <entry key="file://$PROJECT_DIR$/cmd/main.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1753977830716" />
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/internal/im/chat.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1753979710646" />
+              <option name="schema">
+                <list>
+                  <option value="Chat" />
+                </list>
+              </option>
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/internal/im/msg.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1753979816365" />
+              <option name="schema">
+                <list>
+                  <option value="ChatMessage" />
+                </list>
+              </option>
+            </ScannedPath>
+          </value>
+        </entry>
+        <entry key="file://$PROJECT_DIR$/internal/im/user.go">
+          <value>
+            <ScannedPath>
+              <option name="lastModified" value="1753978588744" />
+              <option name="schema">
+                <list>
+                  <option value="User" />
+                </list>
+              </option>
+            </ScannedPath>
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="tableStructMapping">
+      <map>
+        <entry key="chat" value="Chat" />
+        <entry key="chat_message" value="ChatMessage" />
+        <entry key="user" value="User" />
+      </map>
+    </option>
+    <option name="lastTimeChecked" value="1754845416758" />
+  </component>
+</project>
