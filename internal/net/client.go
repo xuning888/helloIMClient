@@ -1,0 +1,1 @@
+package netimport "github.com/panjf2000/gnet/v2"type ImClient struct {	cli *gnet.Client}func (imCli *ImClient) OnBoot(eng gnet.Engine) gnet.Action {	return gnet.None}func (imCli *ImClient) OnOpen() {}func NewImClient() *ImClient {	return &ImClient{}}
