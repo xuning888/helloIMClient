@@ -1,7 +1,7 @@
 package net
 
 import (
-	"fmt"
+	"log"
 	"time"
 
 	"github.com/panjf2000/gnet/v2"
@@ -34,7 +34,7 @@ func (imCli *ImClient) OnTraffic(conn gnet.Conn) gnet.Action {
 		}
 		buf, err := conn.Peek(DefaultHeaderLength)
 		if err != nil {
-			fmt.Printf("Peek Header error: %v\n", err)
+			log.Printf("Peek Header error: %v\n", err)
 			return gnet.Close
 		}
 		header := decodeHeader(buf)
@@ -43,13 +43,13 @@ func (imCli *ImClient) OnTraffic(conn gnet.Conn) gnet.Action {
 			return gnet.None
 		}
 		if _, err2 := conn.Discard(DefaultHeaderLength); err2 != nil {
-			fmt.Printf("Discard header failed, error: %v\n", err2)
+			log.Printf("Discard header failed, error: %v\n", err2)
 			return gnet.Close
 		}
 		body := make([]byte, header.BodyLength)
 		_, err = conn.Read(body)
 		if err != nil {
-			fmt.Printf("Read body failed, error: %v\n", err)
+			log.Printf("Read body failed, error: %v\n", err)
 			return gnet.Close
 		}
 		frame := &Frame{
