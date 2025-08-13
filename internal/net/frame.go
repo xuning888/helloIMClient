@@ -2,7 +2,7 @@ package net
 
 import "encoding/binary"
 
-var DefaultHeaderLength = 20
+var DefaultHeaderSize = 20
 
 type MsgHeader struct {
 	HeaderLength  int32
@@ -17,8 +17,8 @@ type Frame struct {
 	Body   []byte
 }
 
-func encodeHeader(h *MsgHeader) []byte {
-	buf := make([]byte, DefaultHeaderLength)
+func EncodeHeader(h *MsgHeader) []byte {
+	buf := make([]byte, DefaultHeaderSize)
 	binary.BigEndian.PutUint32(buf[0:4], uint32(h.HeaderLength))
 	binary.BigEndian.PutUint32(buf[4:8], uint32(h.ClientVersion))
 	binary.BigEndian.PutUint32(buf[8:12], uint32(h.Seq))
@@ -27,7 +27,7 @@ func encodeHeader(h *MsgHeader) []byte {
 	return buf
 }
 
-func decodeHeader(data []byte) *MsgHeader {
+func DecodeHeader(data []byte) *MsgHeader {
 	return &MsgHeader{
 		HeaderLength:  int32(binary.BigEndian.Uint32(data[0:4])),
 		ClientVersion: int32(binary.BigEndian.Uint32(data[4:8])),
@@ -35,4 +35,14 @@ func decodeHeader(data []byte) *MsgHeader {
 		CmdId:         int32(binary.BigEndian.Uint32(data[12:16])),
 		BodyLength:    int32(binary.BigEndian.Uint32(data[16:20])),
 	}
+}
+
+func ToBytes(frame *Frame) []byte {
+	if frame == nil {
+		return nil
+	}
+	h := frame.Header
+	bytes := append([]byte{}, EncodeHeader(h)...)
+	bytes = append(bytes, frame.Body...)
+	return bytes
 }
