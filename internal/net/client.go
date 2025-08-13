@@ -2,7 +2,6 @@ package net
 
 import (
 	"errors"
-	"fmt"
 	"log"
 
 	"github.com/panjf2000/gnet/v2"
@@ -81,18 +80,10 @@ func (imCli *ImClient) SendFrame(frame *Frame) error {
 	return nil
 }
 
-func (imCli *ImClient) Process() {
-	go func() {
-		for {
-			select {
-			case reply := <-imCli.replies:
-				if reply.Header.CmdId == 1 {
-					fmt.Printf("echo: %s", string(reply.Body))
-				}
-			default:
-			}
-		}
-	}()
+func (imCli *ImClient) Stop() {
+	imCli.conn.Close()
+	imCli.cli.Stop()
+	close(imCli.replies)
 }
 
 func NewImClient(addr string) *ImClient {

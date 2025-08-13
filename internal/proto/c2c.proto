@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package helloim.protocol;
+
+
+option java_package = "com.github.xuning888.helloim.contract.protobuf";
+option java_outer_classname = "C2cMessage";
+option go_package = "github.com/xuning888/helloIMClient/internal/proto;helloim_proto";
+
+
+
+// 单聊上行消息
+message C2cSendRequest {
+  string from = 1; // 消息发送方的uid
+  string to = 2; // 消息接收方的uid
+  string content = 3; // 消息内容
+  int32 contentType = 4;  // 消息的类型
+}
+
+// 单聊上行消息的ACK
+message C2cSendResponse {
+  int64 msgId = 1; // 消息ID
+  int64 timestamp = 2; // 收到上行消息的时间戳
+  int64 serverSeq = 3; // 服务端消息序号
+}
+
+// 单聊下行消息
+message C2cPushRequest {}
+
+// 单聊下行消息的ACK
+message C2cPushResponse {}
+
+

@@ -2,7 +2,10 @@ module github.com/xuning888/helloIMClient
 
 go 1.23.3
 
-require github.com/panjf2000/gnet/v2 v2.9.3
+require (
+	github.com/panjf2000/gnet/v2 v2.9.3
+	google.golang.org/protobuf v1.36.7
+)
 
 require (
 	github.com/panjf2000/ants/v2 v2.11.3 // indirect
