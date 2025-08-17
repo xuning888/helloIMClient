@@ -5,6 +5,7 @@ import (
 	"log"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/xuning888/helloIMClient/frame"
@@ -118,18 +119,21 @@ func Test_c2csendACK(t *testing.T) {
 func send(t *testing.T, client *ImClient, request *frame.Frame) {
 	stop := make(chan struct{})
 	log.Printf("发送上行消息: %v\n", request.Key())
+	now := time.Now()
 	err := client.SendFrameWithCallback(request, func(request, response *frame.Frame, err error) {
 		defer func() { stop <- struct{}{} }()
 		if err != nil {
 			log.Printf("发送单聊上行消息失败, error: %v", err)
 			return
 		}
+		ms := time.Since(now).Milliseconds()
 		c2cSendResponse := &pb.C2CSendResponse{}
 		if err3 := proto.Unmarshal(response.Body, c2cSendResponse); err3 != nil {
 			return
 		}
 		assert.True(t, request.Key() == response.Key())
-		log.Printf("上行消息ACK, request: %v, response: %v\n", request.Key(), response.Key())
+
+		log.Printf("上行消息ACK, request: %v, response: %v, cost: %vms\n", request.Key(), response.Key(), ms)
 	})
 	if err != nil {
 		t.Fatal(err)
