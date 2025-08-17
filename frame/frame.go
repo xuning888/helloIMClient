@@ -1,6 +1,9 @@
-package net
+package frame
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+	"fmt"
+)
 
 var DefaultHeaderSize = 20
 
@@ -15,6 +18,17 @@ type MsgHeader struct {
 type Frame struct {
 	Header *MsgHeader
 	Body   []byte
+}
+
+func NewMsgHeader(clientVersion, seq int32, cmdId, bodyLength int) *MsgHeader {
+	h := &MsgHeader{
+		HeaderLength:  int32(DefaultHeaderSize),
+		ClientVersion: int32(clientVersion),
+		Seq:           int32(seq),
+		CmdId:         int32(cmdId),
+		BodyLength:    int32(bodyLength),
+	}
+	return h
 }
 
 func EncodeHeader(h *MsgHeader) []byte {
@@ -37,7 +51,7 @@ func DecodeHeader(data []byte) *MsgHeader {
 	}
 }
 
-func ToBytes(frame *Frame) []byte {
+func (frame *Frame) ToBytes() []byte {
 	if frame == nil {
 		return nil
 	}
@@ -45,4 +59,9 @@ func ToBytes(frame *Frame) []byte {
 	bytes := append([]byte{}, EncodeHeader(h)...)
 	bytes = append(bytes, frame.Body...)
 	return bytes
+}
+
+func (frame *Frame) Key() string {
+	cmdId, seq := frame.Header.CmdId, frame.Header.Seq
+	return fmt.Sprintf("%d_%d", cmdId, seq)
 }

@@ -21,6 +21,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// 认证的上行消息
 type AuthRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Uid           string                 `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid,omitempty"`
@@ -73,6 +74,67 @@ func (x *AuthRequest) GetUserType() int32 {
 	return 0
 }
 
+// 认证的结果
+type AuthResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Uid           string                 `protobuf:"bytes,1,opt,name=uid,proto3" json:"uid,omitempty"`
+	UserType      int32                  `protobuf:"varint,2,opt,name=userType,proto3" json:"userType,omitempty"`
+	Success       bool                   `protobuf:"varint,3,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuthResponse) Reset() {
+	*x = AuthResponse{}
+	mi := &file_auth_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthResponse) ProtoMessage() {}
+
+func (x *AuthResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_auth_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthResponse.ProtoReflect.Descriptor instead.
+func (*AuthResponse) Descriptor() ([]byte, []int) {
+	return file_auth_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *AuthResponse) GetUid() string {
+	if x != nil {
+		return x.Uid
+	}
+	return ""
+}
+
+func (x *AuthResponse) GetUserType() int32 {
+	if x != nil {
+		return x.UserType
+	}
+	return 0
+}
+
+func (x *AuthResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
 var File_auth_proto protoreflect.FileDescriptor
 
 const file_auth_proto_rawDesc = "" +
@@ -81,7 +143,11 @@ const file_auth_proto_rawDesc = "" +
 	"auth.proto\x12\x10helloim.protocol\";\n" +
 	"\vAuthRequest\x12\x10\n" +
 	"\x03uid\x18\x01 \x01(\tR\x03uid\x12\x1a\n" +
-	"\buserType\x18\x02 \x01(\x05R\buserTypeBw\n" +
+	"\buserType\x18\x02 \x01(\x05R\buserType\"V\n" +
+	"\fAuthResponse\x12\x10\n" +
+	"\x03uid\x18\x01 \x01(\tR\x03uid\x12\x1a\n" +
+	"\buserType\x18\x02 \x01(\x05R\buserType\x12\x18\n" +
+	"\asuccess\x18\x03 \x01(\bR\asuccessBw\n" +
 	".com.github.xuning888.helloim.contract.protobufB\x04AuthZ?github.com/xuning888/helloIMClient/internal/proto;helloim_protob\x06proto3"
 
 var (
@@ -96,9 +162,10 @@ func file_auth_proto_rawDescGZIP() []byte {
 	return file_auth_proto_rawDescData
 }
 
-var file_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_auth_proto_goTypes = []any{
-	(*AuthRequest)(nil), // 0: helloim.protocol.AuthRequest
+	(*AuthRequest)(nil),  // 0: helloim.protocol.AuthRequest
+	(*AuthResponse)(nil), // 1: helloim.protocol.AuthResponse
 }
 var file_auth_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -119,7 +186,7 @@ func file_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_auth_proto_rawDesc), len(file_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

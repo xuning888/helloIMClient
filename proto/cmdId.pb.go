@@ -24,12 +24,13 @@ const (
 type CmdId int32
 
 const (
-	CmdId_CMD_ID_DEFAULT  CmdId = 0
-	CmdId_CMD_ID_ECHO     CmdId = 1    // echo
-	CmdId_CMD_ID_C2CSEND  CmdId = 1006 // 单聊上行
-	CmdId_CMD_ID_C2CPUSH  CmdId = 1007 // 单聊下行
-	CmdId_CMD_ID_C2CPUSTH CmdId = 1008 // 群聊上行
-	CmdId_CMD_ID_C2GPUSH  CmdId = 1009 // 群聊下行
+	CmdId_CMD_ID_DEFAULT CmdId = 0
+	CmdId_CMD_ID_ECHO    CmdId = 1    // echo
+	CmdId_CMD_ID_AUTH    CmdId = 2    // AUTH
+	CmdId_CMD_ID_C2CSEND CmdId = 1006 // 单聊上行
+	CmdId_CMD_ID_C2CPUSH CmdId = 1007 // 单聊下行
+	CmdId_CMD_ID_C2GSEND CmdId = 1008 // 群聊上行
+	CmdId_CMD_ID_C2GPUSH CmdId = 1009 // 群聊下行
 )
 
 // Enum value maps for CmdId.
@@ -37,18 +38,20 @@ var (
 	CmdId_name = map[int32]string{
 		0:    "CMD_ID_DEFAULT",
 		1:    "CMD_ID_ECHO",
+		2:    "CMD_ID_AUTH",
 		1006: "CMD_ID_C2CSEND",
 		1007: "CMD_ID_C2CPUSH",
-		1008: "CMD_ID_C2CPUSTH",
+		1008: "CMD_ID_C2GSEND",
 		1009: "CMD_ID_C2GPUSH",
 	}
 	CmdId_value = map[string]int32{
-		"CMD_ID_DEFAULT":  0,
-		"CMD_ID_ECHO":     1,
-		"CMD_ID_C2CSEND":  1006,
-		"CMD_ID_C2CPUSH":  1007,
-		"CMD_ID_C2CPUSTH": 1008,
-		"CMD_ID_C2GPUSH":  1009,
+		"CMD_ID_DEFAULT": 0,
+		"CMD_ID_ECHO":    1,
+		"CMD_ID_AUTH":    2,
+		"CMD_ID_C2CSEND": 1006,
+		"CMD_ID_C2CPUSH": 1007,
+		"CMD_ID_C2GSEND": 1008,
+		"CMD_ID_C2GPUSH": 1009,
 	}
 )
 
@@ -83,13 +86,14 @@ var File_cmdId_proto protoreflect.FileDescriptor
 
 const file_cmdId_proto_rawDesc = "" +
 	"\n" +
-	"\vcmdId.proto\x12\x10helloim.protocol*\x81\x01\n" +
+	"\vcmdId.proto\x12\x10helloim.protocol*\x91\x01\n" +
 	"\x05CmdId\x12\x12\n" +
 	"\x0eCMD_ID_DEFAULT\x10\x00\x12\x0f\n" +
-	"\vCMD_ID_ECHO\x10\x01\x12\x13\n" +
+	"\vCMD_ID_ECHO\x10\x01\x12\x0f\n" +
+	"\vCMD_ID_AUTH\x10\x02\x12\x13\n" +
 	"\x0eCMD_ID_C2CSEND\x10\xee\a\x12\x13\n" +
-	"\x0eCMD_ID_C2CPUSH\x10\xef\a\x12\x14\n" +
-	"\x0fCMD_ID_C2CPUSTH\x10\xf0\a\x12\x13\n" +
+	"\x0eCMD_ID_C2CPUSH\x10\xef\a\x12\x13\n" +
+	"\x0eCMD_ID_C2GSEND\x10\xf0\a\x12\x13\n" +
 	"\x0eCMD_ID_C2GPUSH\x10\xf1\aBy\n" +
 	".com.github.xuning888.helloim.contract.protobufB\x06MsgCmdZ?github.com/xuning888/helloIMClient/internal/proto;helloim_protob\x06proto3"
 

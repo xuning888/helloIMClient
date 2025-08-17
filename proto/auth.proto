@@ -7,8 +7,15 @@ option java_package = "com.github.xuning888.helloim.contract.protobuf";
 option java_outer_classname = "Auth";
 option go_package = "github.com/xuning888/helloIMClient/internal/proto;helloim_proto";
 
-
+// 认证的上行消息
 message AuthRequest {
   string uid = 1;
   int32 userType = 2;
+}
+
+// 认证的结果
+message AuthResponse {
+  string uid = 1;
+  int32 userType = 2;
+  bool success = 3;
 }
