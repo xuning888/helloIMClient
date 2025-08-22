@@ -25,9 +25,19 @@ message C2cSendResponse {
 }
 
 // 单聊下行消息
-message C2cPushRequest {}
+message C2cPushRequest {
+  string from = 1; // 消息发送方的uid
+  string to = 2; // 消息接收方的uid
+  string content = 3; // 消息内容
+  int32 contentType = 4; // 消息的类型
+  int64 msgId = 5; // 消息ID
+  int64 serverSeq = 6; // 服务端消息序号
+  int64 timestamp = 7; // 收到单聊消息的时间戳
+}
 
 // 单聊下行消息的ACK
-message C2cPushResponse {}
-
-
+message C2cPushResponse {
+  int64 msgId = 1; // 消息ID
+  string from = 2; // 消息发送方
+  string to = 3; // 消息的接收方
+}

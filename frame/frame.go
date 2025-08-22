@@ -23,8 +23,8 @@ type Frame struct {
 func NewMsgHeader(clientVersion, seq int32, cmdId, bodyLength int) *MsgHeader {
 	h := &MsgHeader{
 		HeaderLength:  int32(DefaultHeaderSize),
-		ClientVersion: int32(clientVersion),
-		Seq:           int32(seq),
+		ClientVersion: clientVersion,
+		Seq:           seq,
 		CmdId:         int32(cmdId),
 		BodyLength:    int32(bodyLength),
 	}
@@ -61,6 +61,18 @@ func (frame *Frame) ToBytes() []byte {
 	return bytes
 }
 
+func (frame *Frame) ToBytesV2() []byte {
+	if frame == nil {
+		return nil
+	}
+	h := frame.Header
+	bytes := make([]byte, DefaultHeaderSize+len(frame.Body))
+	copy(bytes, EncodeHeader(h))
+	copy(bytes[20:], frame.Body)
+	return bytes
+}
+
+// Key 对于客户端来说cmdId + seq 就可以确定一条消息的request 和 response
 func (frame *Frame) Key() string {
 	cmdId, seq := frame.Header.CmdId, frame.Header.Seq
 	return fmt.Sprintf("%d_%d", cmdId, seq)

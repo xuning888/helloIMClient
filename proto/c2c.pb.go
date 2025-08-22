@@ -154,6 +154,13 @@ func (x *C2CSendResponse) GetServerSeq() int64 {
 // 单聊下行消息
 type C2CPushRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	From          string                 `protobuf:"bytes,1,opt,name=from,proto3" json:"from,omitempty"`                // 消息发送方的uid
+	To            string                 `protobuf:"bytes,2,opt,name=to,proto3" json:"to,omitempty"`                    // 消息接收方的uid
+	Content       string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`          // 消息内容
+	ContentType   int32                  `protobuf:"varint,4,opt,name=contentType,proto3" json:"contentType,omitempty"` // 消息的类型
+	MsgId         int64                  `protobuf:"varint,5,opt,name=msgId,proto3" json:"msgId,omitempty"`             // 消息ID
+	ServerSeq     int64                  `protobuf:"varint,6,opt,name=serverSeq,proto3" json:"serverSeq,omitempty"`     // 服务端消息序号
+	Timestamp     int64                  `protobuf:"varint,7,opt,name=timestamp,proto3" json:"timestamp,omitempty"`     // 收到单聊消息的时间戳
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -188,9 +195,61 @@ func (*C2CPushRequest) Descriptor() ([]byte, []int) {
 	return file_c2c_proto_rawDescGZIP(), []int{2}
 }
 
+func (x *C2CPushRequest) GetFrom() string {
+	if x != nil {
+		return x.From
+	}
+	return ""
+}
+
+func (x *C2CPushRequest) GetTo() string {
+	if x != nil {
+		return x.To
+	}
+	return ""
+}
+
+func (x *C2CPushRequest) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+func (x *C2CPushRequest) GetContentType() int32 {
+	if x != nil {
+		return x.ContentType
+	}
+	return 0
+}
+
+func (x *C2CPushRequest) GetMsgId() int64 {
+	if x != nil {
+		return x.MsgId
+	}
+	return 0
+}
+
+func (x *C2CPushRequest) GetServerSeq() int64 {
+	if x != nil {
+		return x.ServerSeq
+	}
+	return 0
+}
+
+func (x *C2CPushRequest) GetTimestamp() int64 {
+	if x != nil {
+		return x.Timestamp
+	}
+	return 0
+}
+
 // 单聊下行消息的ACK
 type C2CPushResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	MsgId         int64                  `protobuf:"varint,1,opt,name=msgId,proto3" json:"msgId,omitempty"` // 消息ID
+	From          string                 `protobuf:"bytes,2,opt,name=from,proto3" json:"from,omitempty"`    // 消息发送方
+	To            string                 `protobuf:"bytes,3,opt,name=to,proto3" json:"to,omitempty"`        // 消息的接收方
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -225,6 +284,27 @@ func (*C2CPushResponse) Descriptor() ([]byte, []int) {
 	return file_c2c_proto_rawDescGZIP(), []int{3}
 }
 
+func (x *C2CPushResponse) GetMsgId() int64 {
+	if x != nil {
+		return x.MsgId
+	}
+	return 0
+}
+
+func (x *C2CPushResponse) GetFrom() string {
+	if x != nil {
+		return x.From
+	}
+	return ""
+}
+
+func (x *C2CPushResponse) GetTo() string {
+	if x != nil {
+		return x.To
+	}
+	return ""
+}
+
 var File_c2c_proto protoreflect.FileDescriptor
 
 const file_c2c_proto_rawDesc = "" +
@@ -238,9 +318,19 @@ const file_c2c_proto_rawDesc = "" +
 	"\x0fC2cSendResponse\x12\x14\n" +
 	"\x05msgId\x18\x01 \x01(\x03R\x05msgId\x12\x1c\n" +
 	"\ttimestamp\x18\x02 \x01(\x03R\ttimestamp\x12\x1c\n" +
-	"\tserverSeq\x18\x03 \x01(\x03R\tserverSeq\"\x10\n" +
-	"\x0eC2cPushRequest\"\x11\n" +
-	"\x0fC2cPushResponseB}\n" +
+	"\tserverSeq\x18\x03 \x01(\x03R\tserverSeq\"\xc2\x01\n" +
+	"\x0eC2cPushRequest\x12\x12\n" +
+	"\x04from\x18\x01 \x01(\tR\x04from\x12\x0e\n" +
+	"\x02to\x18\x02 \x01(\tR\x02to\x12\x18\n" +
+	"\acontent\x18\x03 \x01(\tR\acontent\x12 \n" +
+	"\vcontentType\x18\x04 \x01(\x05R\vcontentType\x12\x14\n" +
+	"\x05msgId\x18\x05 \x01(\x03R\x05msgId\x12\x1c\n" +
+	"\tserverSeq\x18\x06 \x01(\x03R\tserverSeq\x12\x1c\n" +
+	"\ttimestamp\x18\a \x01(\x03R\ttimestamp\"K\n" +
+	"\x0fC2cPushResponse\x12\x14\n" +
+	"\x05msgId\x18\x01 \x01(\x03R\x05msgId\x12\x12\n" +
+	"\x04from\x18\x02 \x01(\tR\x04from\x12\x0e\n" +
+	"\x02to\x18\x03 \x01(\tR\x02toB}\n" +
 	".com.github.xuning888.helloim.contract.protobufB\n" +
 	"C2cMessageZ?github.com/xuning888/helloIMClient/internal/proto;helloim_protob\x06proto3"
 

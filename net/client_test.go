@@ -101,7 +101,7 @@ func Test_c2csendACK(t *testing.T) {
 		t.Fatal(err2)
 	}
 	var wg sync.WaitGroup
-	var n = 100
+	var n = 1000
 	for i := 0; i < n; i++ {
 		request, err3 := frame.MakeC2cSendMessage(user.Uid, "2", fmt.Sprintf("hello world_%d", i), 0, GetSeq())
 		if err3 != nil {

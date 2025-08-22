@@ -71,4 +71,5 @@ func (imCli *ImClient) process() {
 func (imCli *ImClient) dispatch(reply *frame.Frame) {
 	// 处理消息的ACK
 	imCli.inflightQ.Ack(reply)
+	imCli.handle(reply)
 }

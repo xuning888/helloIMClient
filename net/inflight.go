@@ -112,7 +112,7 @@ func (item *inflightItem) checkRetryOrTimeout() {
 		return
 	}
 
-	if now.After(item.nextRetryTime) {
+	if now.Equal(item.nextRetryTime) || now.After(item.nextRetryTime) {
 		if err := item.retry(); err != nil {
 			item.safeStop()
 		}
