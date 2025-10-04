@@ -11,6 +11,7 @@ option go_package = "github.com/xuning888/helloIMClient/internal/proto;helloim_p
 message AuthRequest {
   string uid = 1;
   int32 userType = 2;
+  string token = 3;
 }
 
 // 认证的结果
