@@ -3,9 +3,7 @@ package transport
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/panjf2000/gnet/v2"
-	pb "github.com/xuning888/helloIMClient/proto"
 	"github.com/xuning888/helloIMClient/protocol"
 	"github.com/xuning888/helloIMClient/protocol/auth"
 	"log"
@@ -56,13 +54,7 @@ func (c *Conn) asyncWrite0(item *syncItem) error {
 }
 
 func (c *Conn) authReq(ctx context.Context, user *ImUser) error {
-	authRequest := &auth.Request{
-		AuthRequest: &pb.AuthRequest{
-			Uid:      fmt.Sprintf("%d", user.UserId),
-			UserType: int32(user.UserType),
-			Token:    user.Token,
-		},
-	}
+	authRequest := auth.NewRequest(user.UserId, int32(user.UserType), user.Token)
 	item := newSyncItem(authRequest)
 	if err := c.asyncWrite0(item); err != nil {
 		return err
@@ -124,7 +116,6 @@ func (c *Conn) process(frame *protocol.Frame) {
 		item.complete(response)
 	} else {
 		r := &Result{
-			conn: c,
 			resp: response,
 			err:  err,
 		}

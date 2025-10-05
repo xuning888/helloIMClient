@@ -4,7 +4,11 @@ import (
 	"context"
 	"errors"
 	"github.com/panjf2000/gnet/v2"
+	"github.com/xuning888/helloIMClient/option"
+	"github.com/xuning888/helloIMClient/pkg/logger"
 	"github.com/xuning888/helloIMClient/protocol"
+	"github.com/xuning888/helloIMClient/protocol/echo"
+	"github.com/xuning888/helloIMClient/protocol/heartbeat"
 	"github.com/xuning888/helloIMClient/transport/http"
 	"sync"
 	"time"
@@ -25,14 +29,21 @@ type ImUser struct {
 }
 
 type Result struct {
-	conn *Conn
 	resp protocol.Response
 	err  error
 }
 
+func (r *Result) GetResp() protocol.Response {
+	return r.resp
+}
+
+func (r *Result) GetErr() error {
+	return r.err
+}
+
 type Dispatch func(result *Result)
 
-type BaseInfo struct {
+type baseInfo struct {
 	User *ImUser
 	// 长连接的主备地址
 	IpList []string
@@ -40,29 +51,29 @@ type BaseInfo struct {
 
 type ImClient struct {
 	mux          sync.Mutex   // 保护info
-	Info         *BaseInfo    // Info 基础信息
+	Info         *baseInfo    // Info 基础信息
 	serverUrl    string       // IM 服务端WebApi地址
 	ImHttpClient *http.Client // http 客户端
 	cli          *gnet.Client
-	sender       *Sender
+	sender       *sender
 	dispatch     Dispatch
 }
 
-func NewImClient(user *ImUser, dispatch Dispatch, opts ...Option) (*ImClient, error) {
+func NewImClient(user *ImUser, dispatch Dispatch, opts ...option.Option) (*ImClient, error) {
 	// 加载配置项
-	options := loadOptions(opts...)
-	if options.serverUrl == "" {
+	options := option.LoadOptions(opts...)
+	if options.ServerUrl == "" {
 		return nil, ErrEmptyServerUrl
 	}
 	// 设置默认的http超时时间
-	if options.httpTimeout == 0 {
-		options.httpTimeout = defaultHttpTimeout
+	if options.HttpTimeout == 0 {
+		options.HttpTimeout = defaultHttpTimeout
 	}
-	if options.maxAttempts == 0 {
-		options.maxAttempts = 10
+	if options.MaxAttempts == 0 {
+		options.MaxAttempts = 10
 	}
-	if options.lingerMs == 0 {
-		options.lingerMs = time.Millisecond * 10
+	if options.LingerMs == 0 {
+		options.LingerMs = time.Millisecond * 10
 	}
 	// 初始化imcli
 	imCli, err := initImCli(user, dispatch, options)
@@ -70,6 +81,18 @@ func NewImClient(user *ImUser, dispatch Dispatch, opts ...Option) (*ImClient, er
 		return nil, err
 	}
 	return imCli, nil
+}
+
+func (imCli *ImClient) Start() error {
+	// 启动事件轮询
+	if err := imCli.cli.Start(); err != nil {
+		return err
+	}
+	// 发一个echo, 确认网络通畅
+	if _, err := imCli.WriteMessage(context.Background(), echo.NewRequest()); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (imCli *ImClient) WriteMessage(ctx context.Context, request protocol.Request) (protocol.Response, error) {
@@ -149,32 +172,36 @@ func (imCli *ImClient) fetchIpList() error {
 	return nil
 }
 
-func initImCli(user *ImUser, dispatch Dispatch, options *Options) (*ImClient, error) {
+func (imCli *ImClient) heartBeat() error {
+	request := heartbeat.NewRequest()
+	if _, err := imCli.WriteMessage(context.Background(), request); err != nil {
+		logger.Errorf("heartBeat error: %v", err)
+		return err
+	}
+	return nil
+}
+
+func initImCli(user *ImUser, dispatch Dispatch, options *option.Options) (*ImClient, error) {
 	imCli := &ImClient{
-		Info: &BaseInfo{
+		Info: &baseInfo{
 			User: user,
 		},
 		dispatch: dispatch,
 	}
-	imCli.serverUrl = options.serverUrl
+	imCli.serverUrl = options.ServerUrl
 	// 初始化IM的http客户端
-	imCli.ImHttpClient = http.NewClient(imCli.serverUrl, options.httpTimeout)
+	imCli.ImHttpClient = http.NewClient(imCli.serverUrl, options.HttpTimeout)
 	if err := imCli.fetchIpList(); err != nil {
 		return nil, err
 	}
 	// 构造transport
-	transport := newTransport(imCli.dial(), imCli.auth)
-	cli, err := gnet.NewClient(transport)
+	transport := newTransport(imCli.dial(), imCli.auth, imCli.heartBeat)
+	cli, err := gnet.NewClient(transport, gnet.WithTicker(true))
 	if err != nil {
 		return nil, err
 	}
 	imCli.cli = cli
-	// 启动事件轮询
-	err = imCli.cli.Start()
-	if err != nil {
-		return nil, err
-	}
 	// 构造发送器
-	imCli.sender = newSender(transport, options.lingerMs, options.maxAttempts, options.initSeq)
+	imCli.sender = newSender(transport, options.LingerMs, options.MaxAttempts, options.InitSeq)
 	return imCli, nil
 }

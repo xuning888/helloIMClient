@@ -72,7 +72,7 @@ type syncQueue struct {
 	adder  *seqAdder
 }
 
-func (s *syncQueue) Put(request *syncItem) bool {
+func (s *syncQueue) put(request *syncItem) bool {
 	s.cond.L.Lock()
 	defer s.cond.L.Unlock()
 	defer s.cond.Broadcast()
@@ -84,7 +84,7 @@ func (s *syncQueue) Put(request *syncItem) bool {
 	return true
 }
 
-func (s *syncQueue) Get() *syncItem {
+func (s *syncQueue) get() *syncItem {
 	s.cond.L.Lock()
 	defer s.cond.L.Unlock()
 	for len(s.queue) == 0 && !s.closed {

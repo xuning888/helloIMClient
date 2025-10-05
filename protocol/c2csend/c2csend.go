@@ -1,9 +1,11 @@
 package c2csend
 
 import (
+	"fmt"
 	pb "github.com/xuning888/helloIMClient/proto"
 	"github.com/xuning888/helloIMClient/protocol"
 	"google.golang.org/protobuf/proto"
+	"time"
 )
 
 var _ protocol.Request = &Request{}
@@ -34,6 +36,22 @@ func (res *Response) ServerSeq() int64 {
 
 func (res *Response) MsgId() int64 {
 	return res.C2CSendResponse.MsgId
+}
+
+func NewRequest(from, to int64, content string,
+	contentType, fromUserType, toUserType int32) *Request {
+	req := &Request{
+		C2CSendRequest: &pb.C2CSendRequest{
+			From:          fmt.Sprintf("%d", from),
+			To:            fmt.Sprintf("%d", to),
+			Content:       content,
+			ContentType:   contentType,
+			SendTimestamp: time.Now().UnixMilli(),
+			FromUserType:  fromUserType,
+			ToUserType:    toUserType,
+		},
+	}
+	return req
 }
 
 func RequestDecode(frame *protocol.Frame) (protocol.Request, error) {

@@ -1,4 +1,4 @@
-package auth
+package c2cpush
 
 import (
 	"fmt"
@@ -10,38 +10,38 @@ import (
 var _ protocol.Request = &Request{}
 var _ protocol.Response = &Response{}
 
+// Request 单聊下行消息ACK，由客户端发送
 type Request struct {
-	*pb.AuthRequest
+	*pb.C2CPushResponse
 }
 
 func (r *Request) CmdId() int32 {
-	return int32(pb.CmdId_CMD_ID_AUTH)
+	return int32(pb.CmdId_CMD_ID_C2CPUSH)
 }
 
+// Response 单聊下行消息，由IM推送
 type Response struct {
-	*pb.AuthResponse
+	*pb.C2CPushRequest
 }
 
 func (r *Response) CmdId() int32 {
-	return int32(pb.CmdId_CMD_ID_AUTH)
+	return int32(pb.CmdId_CMD_ID_C2CPUSH)
 }
 
-// ServerSeq Auth 信令不需要在通道中传递不需要serverSeq
 func (r *Response) ServerSeq() int64 {
-	return 0
+	return r.GetServerSeq()
 }
 
-// MsgId Auth 信令不需要在通道中传输也不需要存储, 所以msgId也传个0
 func (r *Response) MsgId() int64 {
-	return 0
+	return r.GetMsgId()
 }
 
-func NewRequest(userId int64, userType int32, token string) *Request {
+func NewRequest(from, to int64, msgId int64) *Request {
 	req := &Request{
-		AuthRequest: &pb.AuthRequest{
-			Uid:      fmt.Sprintf("%d", userId),
-			UserType: userType,
-			Token:    token,
+		C2CPushResponse: &pb.C2CPushResponse{
+			From:  fmt.Sprintf("%d", from),
+			To:    fmt.Sprintf("%d", to),
+			MsgId: msgId,
 		},
 	}
 	return req
@@ -49,31 +49,31 @@ func NewRequest(userId int64, userType int32, token string) *Request {
 
 func RequestDecode(frame *protocol.Frame) (protocol.Request, error) {
 	body := frame.Body
-	pbReq := pb.AuthRequest{}
-	err := proto.Unmarshal(body, &pbReq)
+	c2cPushResponse := pb.C2CPushResponse{}
+	err := proto.Unmarshal(body, &c2cPushResponse)
 	if err != nil {
 		return nil, err
 	}
 	req := &Request{
-		&pbReq,
+		C2CPushResponse: &c2cPushResponse,
 	}
 	return req, nil
 }
 
 func ResponseDecode(frame *protocol.Frame) (protocol.Response, error) {
 	body := frame.Body
-	pbResp := pb.AuthResponse{}
-	err := proto.Unmarshal(body, &pbResp)
+	c2cPushRequest := pb.C2CPushRequest{}
+	err := proto.Unmarshal(body, &c2cPushRequest)
 	if err != nil {
 		return nil, err
 	}
 	return &Response{
-		&pbResp,
+		C2CPushRequest: &c2cPushRequest,
 	}, nil
 }
 
 func init() {
-	protocol.RegisterDecoder(int32(pb.CmdId_CMD_ID_AUTH), &protocol.Decoder{
+	protocol.RegisterDecoder(int32(pb.CmdId_CMD_ID_C2CPUSH), &protocol.Decoder{
 		RequestDecode:  RequestDecode,
 		ResponseDecode: ResponseDecode,
 	})

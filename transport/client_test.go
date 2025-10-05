@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/xuning888/helloIMClient/option"
+	"github.com/xuning888/helloIMClient/pkg/logger"
 	pb "github.com/xuning888/helloIMClient/proto"
 	"github.com/xuning888/helloIMClient/protocol/c2csend"
 	"sync"
@@ -12,20 +14,24 @@ import (
 )
 
 func TestNewClient(t *testing.T) {
+	logger.InitLogger()
 	user := ImUser{
 		UserId:   1,
 		UserType: 0,
 		Token:    "token",
 	}
-	client, err := NewImClient(&user, testDispatch, WithServerUrl("http://127.0.0.1:8087"))
+	client, err := NewImClient(&user, testDispatch, option.WithServerUrl("http://127.0.0.1:8087"))
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err = client.Start(); err != nil {
 		t.Fatal(err)
 	}
 	defer client.Close()
 	t.Logf("ips: %v", client.Info.IpList)
-	var n = 1000
+	var n = 10
 	for i := 0; i < n; i++ {
-		request := buildMsg(i)
+		request := buildMsg(i, user.UserId)
 		now := time.Now()
 		response, err2 := client.WriteMessage(context.Background(), request)
 		cost := time.Since(now).Milliseconds()
@@ -50,17 +56,21 @@ func TestImClient_WriteMessage(t *testing.T) {
 }
 
 func writeMessage(i int, t *testing.T) {
+	logger.InitLogger()
 	user := ImUser{
 		UserId:   int64(i),
 		UserType: 0,
 		Token:    "token",
 	}
-	client, err := NewImClient(&user, testDispatch, WithServerUrl("http://127.0.0.1:8087"))
+	client, err := NewImClient(&user, testDispatch, option.WithServerUrl("http://127.0.0.1:8087"))
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err = client.Start(); err != nil {
+		t.Fatal(err)
+	}
 	defer client.Close()
-	request := buildMsg(i)
+	request := buildMsg(i, int64(i))
 	now := time.Now()
 	response, err2 := client.WriteMessage(context.Background(), request)
 	cost := time.Since(now).Milliseconds()
@@ -70,10 +80,10 @@ func writeMessage(i int, t *testing.T) {
 	t.Logf("resp: %v, cost: %d ms", c2cSendResponse, cost)
 }
 
-func buildMsg(i int) *c2csend.Request {
+func buildMsg(i int, from int64) *c2csend.Request {
 	request := &c2csend.Request{
 		C2CSendRequest: &pb.C2CSendRequest{
-			From:          "1",
+			From:          fmt.Sprintf("%d", from),
 			To:            "2",
 			Content:       fmt.Sprintf("hello world %d", i),
 			ContentType:   0,

@@ -1,6 +1,7 @@
 package im
 
 type ChatMessage struct {
+	MsgId     int64    // 消息IM
 	ChatId    string   // 会话ID
 	ChatType  ChatType // 会话类型
 	FromUid   string   // 消息发送者的ID

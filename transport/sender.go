@@ -3,6 +3,7 @@ package transport
 import (
 	"context"
 	"errors"
+	"github.com/xuning888/helloIMClient/pkg/logger"
 	"github.com/xuning888/helloIMClient/protocol"
 	"sync"
 	"sync/atomic"
@@ -13,7 +14,7 @@ var (
 	ErrClosed = errors.New("imClient closed")
 )
 
-type Sender struct {
+type sender struct {
 	transport   *Transport    // gnet 传输层
 	queue       *syncQueue    // 飞行队列
 	lingerMs    time.Duration // 等待时间
@@ -24,22 +25,22 @@ type Sender struct {
 	closed    int32          // 原子关闭标志
 }
 
-func (s *Sender) writeMessage(ctx context.Context, request protocol.Request) (protocol.Response, error) {
+func (s *sender) writeMessage(ctx context.Context, request protocol.Request) (protocol.Response, error) {
 	item := newSyncItem(request)
-	if putSuccess := s.queue.Put(item); !putSuccess {
+	if putSuccess := s.queue.put(item); !putSuccess {
 		return nil, ErrClosed
 	}
-	/*timeout, cancelFunc := context.WithTimeout(ctx, time.Second*3)
-	defer cancelFunc()*/
-	if err := item.await(ctx); err != nil {
+	timeout, cancelFunc := context.WithTimeout(ctx, time.Second*3)
+	defer cancelFunc()
+	if err := item.await(timeout); err != nil {
 		return nil, err
 	}
 	return item.response, item.err
 }
 
-func (s *Sender) writeRequest() {
+func (s *sender) writeRequest() {
 	for {
-		item := s.queue.Get()
+		item := s.queue.get()
 		if item == nil {
 			select {
 			// 没有消息就等待在这里等待下
@@ -56,7 +57,7 @@ func (s *Sender) writeRequest() {
 	}
 }
 
-func (s *Sender) close() {
+func (s *sender) close() {
 	s.closeOnce.Do(func() {
 		atomic.StoreInt32(&s.closed, 1)
 		s.queue.Close()
@@ -72,7 +73,7 @@ func (s *Sender) close() {
 	})
 }
 
-func (s *Sender) run(f func()) {
+func (s *sender) run(f func()) {
 	s.wg.Add(1)
 	go func() {
 		defer s.wg.Done()
@@ -80,7 +81,7 @@ func (s *Sender) run(f func()) {
 	}()
 }
 
-func (s *Sender) doWrite(item *syncItem) {
+func (s *sender) doWrite(item *syncItem) {
 	if item == nil {
 		return
 	}
@@ -96,6 +97,7 @@ func (s *Sender) doWrite(item *syncItem) {
 		if lastErr == nil {
 			break
 		}
+		logger.Infof("doWrite")
 	}
 	if lastErr != nil {
 		if item.response == nil {
@@ -112,8 +114,8 @@ func backoff(attempt int, min time.Duration, max time.Duration) time.Duration {
 	return d
 }
 
-func newSender(transport *Transport, lingerMs time.Duration, maxAttempts int, seq int32) *Sender {
-	sender := &Sender{
+func newSender(transport *Transport, lingerMs time.Duration, maxAttempts int, seq int32) *sender {
+	sender := &sender{
 		transport:   transport,
 		lingerMs:    lingerMs,
 		maxAttempts: maxAttempts,

@@ -3,10 +3,13 @@ package transport
 import (
 	"context"
 	"github.com/panjf2000/gnet/v2"
+	"github.com/xuning888/helloIMClient/pkg/logger"
 	"sync"
 	"sync/atomic"
 	"time"
 )
+
+type HeartBeat func() error
 
 type Auth func(ctx context.Context, conn *Conn) error
 
@@ -15,6 +18,7 @@ type Dial func(ctx context.Context) (*Conn, error)
 // Transport TCP 网络传输的实现细节
 type Transport struct {
 	gnet.BuiltinEventEngine              // 实现gnet的eventHandler, 事件回调
+	heartBeat               HeartBeat    // 心跳
 	connManager             *connManager // 连接管理器
 	closed                  int32
 	reconn                  chan struct{}
@@ -55,7 +59,12 @@ func (t *Transport) OnClose(conn gnet.Conn, err error) gnet.Action {
 
 // OnTick 定时任务
 func (t *Transport) OnTick() (delay time.Duration, action gnet.Action) {
-	return time.Second * 10, gnet.None
+	delay, action = time.Second*10, gnet.None
+	err := t.heartBeat()
+	if err != nil {
+		logger.Errorf("heartBeat error: %v", err)
+	}
+	return
 }
 
 func (t *Transport) OnTraffic(c gnet.Conn) (action gnet.Action) {
@@ -115,8 +124,9 @@ func (cm *connManager) delete(c gnet.Conn) {
 	}
 }
 
-func newTransport(dial Dial, auth Auth) *Transport {
+func newTransport(dial Dial, auth Auth, heart HeartBeat) *Transport {
 	t := &Transport{
+		heartBeat: heart,
 		connManager: &connManager{
 			mux:  sync.Mutex{},
 			dial: dial,

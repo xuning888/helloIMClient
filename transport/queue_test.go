@@ -4,7 +4,7 @@ import "testing"
 
 func TestGet(t *testing.T) {
 	queue := newSyncQueue(10, 1)
-	item := queue.Get()
+	item := queue.get()
 	if item == nil {
 		return
 	}

@@ -12,6 +12,7 @@ enum CmdId {
   CMD_ID_DEFAULT = 0;
   CMD_ID_ECHO = 1; // echo
   CMD_ID_AUTH = 2; // AUTH
+  CMD_ID_HEARTBEAT = 3; // 心跳
   CMD_ID_C2CSEND = 1006; // 单聊上行
   CMD_ID_C2CPUSH = 1007; // 单聊下行
   CMD_ID_C2GSEND = 1008; // 群聊上行

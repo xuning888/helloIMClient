@@ -15,3 +15,9 @@ message EchoRequest {
 message EchoResponse {
   string msg = 2;
 }
+
+message EmptyRequest {
+}
+
+message EmptyResponse {
+}

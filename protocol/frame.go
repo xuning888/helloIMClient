@@ -2,7 +2,6 @@ package protocol
 
 import (
 	"encoding/binary"
-	"github.com/panjf2000/gnet/v2"
 )
 
 // DefaultHeaderSize 固定消息头的长度
@@ -43,39 +42,5 @@ func DecodeHeader(data []byte) *MsgHeader {
 		Seq:           int32(binary.BigEndian.Uint32(data[8:12])),
 		CmdId:         int32(binary.BigEndian.Uint32(data[12:16])),
 		BodyLength:    int32(binary.BigEndian.Uint32(data[16:20])),
-	}
-}
-
-// DecodeBytes 从socket读取数据并解码
-func DecodeBytes(conn gnet.Conn) (frames []*Frame, action gnet.Action) {
-	for {
-		if conn.InboundBuffered() < DefaultHeaderSize {
-			action = gnet.None
-			return
-		}
-		buf, err := conn.Peek(DefaultHeaderSize)
-		if err != nil {
-			action = gnet.None
-			return
-		}
-		header := DecodeHeader(buf)
-		frameSize := int(header.BodyLength) + DefaultHeaderSize
-		if conn.InboundBuffered() < frameSize {
-			action = gnet.None
-			return
-		}
-		if _, err = conn.Discard(DefaultHeaderSize); err != nil {
-			action = gnet.Close
-			return
-		}
-		body := make([]byte, header.BodyLength)
-		if _, err = conn.Read(body); err != nil {
-			action = gnet.Close
-			return
-		}
-		frames = append(frames, &Frame{
-			Header: header,
-			Body:   body,
-		})
 	}
 }
