@@ -2,6 +2,7 @@ package app
 
 import (
 	"github.com/xuning888/helloIMClient/pkg/logger"
+	"github.com/xuning888/helloIMClient/svc"
 	"github.com/xuning888/helloIMClient/transport"
 	"sync"
 )
@@ -15,8 +16,9 @@ var contextPool = sync.Pool{
 type Handler func(ctx *ImContext) error
 
 type router struct {
-	imCli    *transport.ImClient
-	handlers map[int32]Handler
+	imCli     *transport.ImClient
+	commonSvc *svc.CommonSvc
+	handlers  map[int32]Handler
 }
 
 func (h *router) route(ctx *ImContext) error {

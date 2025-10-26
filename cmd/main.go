@@ -27,7 +27,6 @@ func main() {
 		UserType: 0,
 		Token:    "",
 	}
-
 	request := c2csend.NewRequest(user.UserId, toUser.UserId, "你好", 0,
 		int32(user.UserType), int32(toUser.UserType))
 

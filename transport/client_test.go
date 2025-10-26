@@ -29,7 +29,7 @@ func TestNewClient(t *testing.T) {
 	}
 	defer client.Close()
 	t.Logf("ips: %v", client.Info.IpList)
-	var n = 10
+	var n = 100000
 	for i := 0; i < n; i++ {
 		request := buildMsg(i, user.UserId)
 		now := time.Now()

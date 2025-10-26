@@ -1,7 +1,9 @@
 package app
 
 import (
+	"context"
 	"github.com/xuning888/helloIMClient/option"
+	"github.com/xuning888/helloIMClient/svc"
 	"github.com/xuning888/helloIMClient/transport"
 )
 
@@ -10,7 +12,22 @@ type ImApp struct {
 }
 
 func (i *ImApp) Start() error {
-	return i.imCli.Start()
+	if err := i.imCli.Start(); err != nil {
+		return err
+	}
+	// 拉取用户信息
+	users, err := i.imCli.ImHttpClient.Users(context.Background())
+	if err != nil {
+		return err
+	}
+
+	chats := make([]*svc.Chat, 0)
+	for _, u := range users {
+		//
+		svc.NewChat()
+	}
+	i.commonSvc = svc.NewCommonSvc(users, nil)
+	return nil
 }
 
 func NewApp(imUser *transport.ImUser, opts ...option.Option) (*ImApp, error) {
