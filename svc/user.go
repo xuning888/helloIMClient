@@ -30,6 +30,7 @@ func (um *UserSvc) GetUser(userId int64) *User {
 	if value, ok := um.users.Load(userId); ok {
 		return value.(*User)
 	}
+	// TODO 拉用户
 	return nil
 }
 

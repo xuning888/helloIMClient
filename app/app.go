@@ -21,11 +21,6 @@ func (i *ImApp) Start() error {
 		return err
 	}
 
-	chats := make([]*svc.Chat, 0)
-	for _, u := range users {
-		//
-		svc.NewChat()
-	}
 	i.commonSvc = svc.NewCommonSvc(users, nil)
 	return nil
 }

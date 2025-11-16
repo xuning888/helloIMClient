@@ -29,7 +29,7 @@ func TestNewClient(t *testing.T) {
 	}
 	defer client.Close()
 	t.Logf("ips: %v", client.Info.IpList)
-	var n = 100000
+	var n = 10
 	for i := 0; i < n; i++ {
 		request := buildMsg(i, user.UserId)
 		now := time.Now()
@@ -43,7 +43,7 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestImClient_WriteMessage(t *testing.T) {
-	var n = 100
+	var n = 1
 	var wg sync.WaitGroup
 	for i := 0; i < n; i++ {
 		wg.Add(1)

@@ -47,10 +47,9 @@ func initSampleData() {
 			UnReadNum: 2,
 			LastChatMessage: &svc.ChatMessage{
 				MsgId:    1,
-				ChatId:   "1",
-				ChatType: svc.C2C,
-				FromUid:  222,
-				FromName: "张三",
+				ChatId:   1,
+				ChatType: int32(svc.C2C),
+				MsgFrom:  222,
 				ToUid:    111,
 				Content:  "你好，在忙什么呢？",
 			},

@@ -8,20 +8,30 @@ import (
 )
 
 type ChatMessage struct {
-	ChatType  ChatType // 会话类型
-	MsgId     int64    // 消息IM
-	ChatId    string   // 会话ID
-	FromUid   int64    // 消息发送者的ID
-	FromName  string   // 消息发送者的名称
-	Content   string   // 消息内容
-	ToUid     int64    // 消息接受者的ID
-	Seq       int32    // 客户端SEQ
-	ServerSeq int64    // 服务端的消息序号
-	Timestamp int64    // 时间戳
+	ChatType      int32  `json:"chatType,omitempty"`
+	ChatId        int64  `json:"chatId,omitempty"`
+	ChatIdStr     string `json:"chatIdStr,omitempty"`
+	MsgId         int64  `json:"msgId,omitempty"`
+	MsgIdStr      string `json:"msgIdStr,omitempty"`
+	MsgFrom       int64  `json:"msgFrom,omitempty"`
+	MsgFromStr    string `json:"msgFromStr,omitempty"`
+	FromUserType  int32  `json:"fromUserType,omitempty"`
+	MsgTo         int64  `json:"msgTo,omitempty"`
+	MsgToStr      string `json:"msgToStr,omitempty"`
+	ToUserType    int32  `json:"toUserType,omitempty"`
+	GroupId       int64  `json:"groupId,omitempty"`
+	GroupIdStr    string `json:"groupIdStr,omitempty"`
+	MsgSeq        int32  `json:"msgSeq,omitempty"`
+	MsgContent    string `json:"msgContent,omitempty"`
+	ContentType   int32  `json:"contentType,omitempty"`
+	CmdId         int32  `json:"cmdId,omitempty"`
+	SendTime      int64  `json:"sendTime,omitempty"`
+	ReceiptStatus int32  `json:"receiptStatus,omitempty"`
+	ServerSeq     int64  `json:"serverSeq,omitempty"`
 }
 
 func (m *ChatMessage) String() string {
-	return fmt.Sprintf("%d_%v", m.ServerSeq, m.Content)
+	return fmt.Sprintf("%d_%v", m.ServerSeq, m.MsgContent)
 }
 
 // OrderedMsg 处理无序到达，有序输出
@@ -68,7 +78,6 @@ func (o *OrderedMsg) Insert(msg *ChatMessage) (msgs []*ChatMessage, minSeq, maxS
 		for _, k := range delKey {
 			delete(o.hash, k)
 		}
-
 	}
 	minSeq, maxSeq = o.missingSeq()
 	return

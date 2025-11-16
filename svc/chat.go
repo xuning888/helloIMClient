@@ -14,6 +14,21 @@ const (
 	C2G ChatType = 2
 )
 
+type ChatInfo struct {
+	Id                 string `json:"id"`
+	UserID             int64  `json:"userId"`
+	ChatID             int64  `json:"chatId"`
+	ChatType           int32  `json:"chatType"`
+	ChatTop            bool   `json:"chatTop"`
+	ChatMute           bool   `json:"chatMute"`
+	ChatDel            bool   `json:"chatDel"`
+	UpdateTimestamp    int64  `json:"updateTimestamp"`
+	DelTimestamp       int64  `json:"delTimestamp"`
+	LastReadMsgID      int64  `json:"lastReadMsgId"`
+	SubStatus          int32  `json:"subStatus"`
+	JoinGroupTimestamp int64  `json:"joinGroupTimestamp"`
+}
+
 type Chat struct {
 	Id                       int64        // 会话ID
 	Type                     ChatType     // 会话类型
@@ -38,7 +53,7 @@ func NewChat(chatId int64, chatType ChatType, chatName string, msgs []*ChatMessa
 	if len(msgs) != 0 {
 		chat.Msgs = NewMsgSvc(msgs)
 		chat.LastChatMessage = chat.Msgs.LastMessage()
-		chat.LastChatMessageTimestamp = chat.Msgs.LastMessage().Timestamp
+		chat.LastChatMessageTimestamp = chat.Msgs.LastMessage().SendTime
 		chat.UnReadNum = 0
 	} else {
 		chat.Msgs = NewMsgSvc(nil)

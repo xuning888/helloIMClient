@@ -168,11 +168,11 @@ func (m Model) chatView() string {
 
 	var messages strings.Builder
 	chat.Msgs.Range(func(i int, msg *svc.ChatMessage) bool {
-		timeStr := pkg.FormatTime(msg.Timestamp)
+		timeStr := pkg.FormatTime(msg.SendTime)
 
 		// 我发送的消息
-		if msg.FromUid == Me.UserId {
-			msgContent := fmt.Sprintf("%s\n%s %s", msg.Content, Me.UserName, timeStr)
+		if msg.MsgFrom == Me.UserId {
+			msgContent := fmt.Sprintf("%s\n%s %s", msg.MsgContent, Me.UserName, timeStr)
 			msgBlock := myMsgStyle.
 				Width(m.width / 2).
 				Align(lipgloss.Right).
@@ -183,7 +183,11 @@ func (m Model) chatView() string {
 				Width(m.width-4).
 				Render(msgBlock) + "\n")
 		} else {
-			msgContent := fmt.Sprintf("%s %s\n%s", msg.FromName, timeStr, msg.Content)
+			var name = ""
+			if user := m.commonSvc.GetUser(msg.MsgFrom); user != nil {
+				name = user.UserName
+			}
+			msgContent := fmt.Sprintf("%s %s\n%s", name, timeStr, msg.MsgContent)
 			msgBlock := yourMsgStyle.
 				Width(m.width / 2).
 				Render(msgContent)
@@ -212,7 +216,7 @@ func processLastMessage(lastMessage *svc.ChatMessage) string {
 	if lastMessage == nil {
 		return ""
 	}
-	content := lastMessage.Content
+	content := lastMessage.MsgContent
 	return truncateText(content, 30)
 }
 
