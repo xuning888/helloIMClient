@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"fmt"
+
 	"google.golang.org/protobuf/proto"
 )
 
@@ -28,6 +29,8 @@ type Response interface {
 	ServerSeq() int64
 	// MsgId 服务端为消息分配到唯一ID
 	MsgId() int64
+
+	MsgSeq() int32
 }
 
 type DecodeResponse func(frame *Frame) (Response, error)

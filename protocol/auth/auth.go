@@ -2,7 +2,8 @@ package auth
 
 import (
 	"fmt"
-	pb "github.com/xuning888/helloIMClient/proto"
+
+	"github.com/xuning888/helloIMClient/internal/proto"
 	"github.com/xuning888/helloIMClient/protocol"
 	"google.golang.org/protobuf/proto"
 )
@@ -11,19 +12,24 @@ var _ protocol.Request = &Request{}
 var _ protocol.Response = &Response{}
 
 type Request struct {
-	*pb.AuthRequest
+	*helloim_proto.AuthRequest
 }
 
 func (r *Request) CmdId() int32 {
-	return int32(pb.CmdId_CMD_ID_AUTH)
+	return int32(helloim_proto.CmdId_CMD_ID_AUTH)
 }
 
 type Response struct {
-	*pb.AuthResponse
+	*helloim_proto.AuthResponse
+	f *protocol.Frame
+}
+
+func (r *Response) MsgSeq() int32 {
+	return r.f.Header.Seq
 }
 
 func (r *Response) CmdId() int32 {
-	return int32(pb.CmdId_CMD_ID_AUTH)
+	return int32(helloim_proto.CmdId_CMD_ID_AUTH)
 }
 
 // ServerSeq Auth 信令不需要在通道中传递不需要serverSeq
@@ -38,7 +44,7 @@ func (r *Response) MsgId() int64 {
 
 func NewRequest(userId int64, userType int32, token string) *Request {
 	req := &Request{
-		AuthRequest: &pb.AuthRequest{
+		AuthRequest: &helloim_proto.AuthRequest{
 			Uid:      fmt.Sprintf("%d", userId),
 			UserType: userType,
 			Token:    token,
@@ -49,7 +55,7 @@ func NewRequest(userId int64, userType int32, token string) *Request {
 
 func RequestDecode(frame *protocol.Frame) (protocol.Request, error) {
 	body := frame.Body
-	pbReq := pb.AuthRequest{}
+	pbReq := helloim_proto.AuthRequest{}
 	err := proto.Unmarshal(body, &pbReq)
 	if err != nil {
 		return nil, err
@@ -62,18 +68,19 @@ func RequestDecode(frame *protocol.Frame) (protocol.Request, error) {
 
 func ResponseDecode(frame *protocol.Frame) (protocol.Response, error) {
 	body := frame.Body
-	pbResp := pb.AuthResponse{}
+	pbResp := helloim_proto.AuthResponse{}
 	err := proto.Unmarshal(body, &pbResp)
 	if err != nil {
 		return nil, err
 	}
 	return &Response{
 		&pbResp,
+		frame,
 	}, nil
 }
 
 func init() {
-	protocol.RegisterDecoder(int32(pb.CmdId_CMD_ID_AUTH), &protocol.Decoder{
+	protocol.RegisterDecoder(int32(helloim_proto.CmdId_CMD_ID_AUTH), &protocol.Decoder{
 		RequestDecode:  RequestDecode,
 		ResponseDecode: ResponseDecode,
 	})

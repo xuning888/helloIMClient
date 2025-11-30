@@ -2,11 +2,12 @@ package transport
 
 import (
 	"context"
-	"github.com/panjf2000/gnet/v2"
-	"github.com/xuning888/helloIMClient/pkg/logger"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/panjf2000/gnet/v2"
+	"github.com/xuning888/helloIMClient/pkg/logger"
 )
 
 type HeartBeat func() error

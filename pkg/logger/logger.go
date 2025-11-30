@@ -1,27 +1,47 @@
 package logger
 
 import (
-	"fmt"
+	"os"
+	"path/filepath"
+	"time"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"time"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var globalLogger *zap.Logger
 
-func InitLogger() {
-	lgCfg := DefaultZapLoggerConfig
-	logger, err := lgCfg.Build()
+func InitLogger() error {
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		panic(fmt.Errorf("init logger failed: %w", err))
+		return err
 	}
+	absPath := filepath.Join(homeDir, ".helloIm", "log", "app.log")
+	dir := filepath.Dir(absPath)
+	if err2 := os.MkdirAll(dir, 0755); err2 != nil {
+		return err2
+	}
+	fileWriter := zapcore.AddSync(&lumberjack.Logger{
+		Filename:   absPath,
+		MaxSize:    100,
+		MaxBackups: 7,
+		MaxAge:     30,
+		Compress:   true,
+	})
+
+	// 创建编码器
+	encoderConfig := DefaultZapLoggerConfig.EncoderConfig
+	encoder := zapcore.NewConsoleEncoder(encoderConfig)
+
+	core := zapcore.NewTee(
+		zapcore.NewCore(encoder, fileWriter, DefaultZapLoggerConfig.Level),
+		zapcore.NewCore(encoder, zapcore.AddSync(zapcore.Lock(os.Stderr)), DefaultZapLoggerConfig.Level),
+	)
+	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))
 	zap.ReplaceGlobals(logger)
 	globalLogger = logger
-}
-
-func Named(name string) Logger {
-	sugar := globalLogger.Named(name).Sugar()
-	return sugar
+	return nil
 }
 
 var DefaultLevel = zap.InfoLevel

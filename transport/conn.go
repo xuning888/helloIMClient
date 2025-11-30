@@ -3,12 +3,15 @@ package transport
 import (
 	"context"
 	"errors"
-	"github.com/panjf2000/gnet/v2"
-	"github.com/xuning888/helloIMClient/protocol"
-	"github.com/xuning888/helloIMClient/protocol/auth"
+	"fmt"
 	"log"
 	"sync"
 	"sync/atomic"
+
+	"github.com/panjf2000/gnet/v2"
+	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
+	"github.com/xuning888/helloIMClient/protocol"
+	"github.com/xuning888/helloIMClient/protocol/auth"
 )
 
 var (
@@ -53,8 +56,9 @@ func (c *Conn) asyncWrite0(item *syncItem) error {
 	return nil
 }
 
-func (c *Conn) authReq(ctx context.Context, user *ImUser) error {
-	authRequest := auth.NewRequest(user.UserId, int32(user.UserType), user.Token)
+func (c *Conn) authReq(ctx context.Context, user *sqllite.ImUser) error {
+	// TODO token
+	authRequest := auth.NewRequest(user.UserID, int32(user.UserType), "")
 	item := newSyncItem(authRequest)
 	if err := c.asyncWrite0(item); err != nil {
 		return err
@@ -125,6 +129,11 @@ func (c *Conn) process(frame *protocol.Frame) {
 
 func (c *Conn) run(f func()) {
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Println(r)
+			}
+		}()
 		f()
 	}()
 }

@@ -3,13 +3,12 @@ package svc
 type CommonSvc struct {
 	*ChatSvc
 	*UserSvc
-	*MsgSvc
 }
 
-func NewCommonSvc(users []*User, chats []*Chat) *CommonSvc {
+func NewCommonSvc(chatSvc *ChatSvc, userSvc *UserSvc) *CommonSvc {
 	commonSvc := &CommonSvc{
-		ChatSvc: newChatSvc(chats),
-		UserSvc: newUserSvc(users),
+		ChatSvc: chatSvc,
+		UserSvc: userSvc,
 	}
 	return commonSvc
 }

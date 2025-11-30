@@ -1,15 +1,21 @@
 package ui
 
 import (
+	"context"
 	"fmt"
+	"strconv"
+	"strings"
+
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/xuning888/helloIMClient/internal/model"
 	"github.com/xuning888/helloIMClient/pkg"
+	"github.com/xuning888/helloIMClient/protocol"
+	"github.com/xuning888/helloIMClient/protocol/c2csend"
 	"github.com/xuning888/helloIMClient/svc"
-	"strconv"
-	"strings"
+	"github.com/xuning888/helloIMClient/transport"
 )
 
 var (
@@ -17,9 +23,10 @@ var (
 	viewChat = "chat"
 )
 
-var Me = svc.User{}
+var Me = model.ImUser{}
 
 type Model struct {
+	imCli       *transport.ImClient
 	commonSvc   *svc.CommonSvc  // service
 	selectChat  int             // 会话列表游标: 选择的会话
 	currentView string          // 当前展示的模式: list 或者 chat
@@ -30,11 +37,12 @@ type Model struct {
 	height      int             // 高度
 }
 
-func InitModel(commonSvc *svc.CommonSvc) Model {
+func InitModel(commonSvc *svc.CommonSvc, imCli *transport.ImClient) Model {
 	ti := textinput.New()
 	ti.Placeholder = "请输入消息..."
 	ti.Focus()
 	return Model{
+		imCli:       imCli,
 		commonSvc:   commonSvc,
 		selectChat:  0,        // 默认选中第一个会话
 		currentView: viewList, // 默认进入会话列表
@@ -77,11 +85,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.currentView = viewChat
 				return m, nil
 			} else if m.currentView == viewChat {
-				value := m.textInput.Value()
-				if value != "" {
-					// TODO sendMessage
-					fmt.Printf("sendMessage")
-				}
+				m.sendMessage()
 				return m, nil
 			}
 		case "up":
@@ -167,7 +171,7 @@ func (m Model) chatView() string {
 	content.WriteString(header)
 
 	var messages strings.Builder
-	chat.Msgs.Range(func(i int, msg *svc.ChatMessage) bool {
+	chat.Msgs.Range(func(i int, msg *model.ChatMessage) bool {
 		timeStr := pkg.FormatTime(msg.SendTime)
 
 		// 我发送的消息
@@ -210,9 +214,30 @@ func (m Model) chatView() string {
 	return content.String()
 }
 
+func (m Model) sendMessage() {
+	value := m.textInput.Value()
+	if value != "" {
+		chat := m.commonSvc.GetChatByIndex(m.selectChat)
+		request := c2csend.NewRequest(Me.UserId, chat.ChatId, value, 0, 0, 0)
+		response, err := m.imCli.WriteMessage(context.Background(), request)
+		if err != nil {
+			m.textInput.SetValue("")
+			return
+		}
+		m.saveC2CMessage(request, response, chat)
+	}
+}
+
+func (m Model) saveC2CMessage(request *c2csend.Request, response protocol.Response, chat *svc.Chat) {
+	message := model.NewMessage(1, chat.ChatId, response.MsgId(), Me.UserId, chat.ChatId,
+		0, 0, 0, request.Content, request.ContentType, request.CmdId(),
+		request.SendTimestamp, 0, response.ServerSeq())
+	chat.Msgs.AppendMsg(message)
+}
+
 // processLastMessage 处理下最后一条消息
 // Note: 如果是群聊会话的最后一条消息，可能出现@我的消息
-func processLastMessage(lastMessage *svc.ChatMessage) string {
+func processLastMessage(lastMessage *model.ChatMessage) string {
 	if lastMessage == nil {
 		return ""
 	}

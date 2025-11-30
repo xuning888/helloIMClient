@@ -1,10 +1,12 @@
 package app
 
 import (
+	"log"
+	"sync"
+
 	"github.com/xuning888/helloIMClient/pkg/logger"
 	"github.com/xuning888/helloIMClient/svc"
 	"github.com/xuning888/helloIMClient/transport"
-	"sync"
 )
 
 var contextPool = sync.Pool{
@@ -35,6 +37,7 @@ func (h *router) dispatch(result *transport.Result) {
 	context.imCli = h.imCli                  // 设置imCli
 	context.CmdId = result.GetResp().CmdId() // 设置指令号
 	context.response = result.GetResp()      // 设置下行消息
+	context.commonSvc = h.commonSvc          // commonSvc
 	defer func() {
 		context.reset()
 		contextPool.Put(context)
@@ -50,6 +53,6 @@ func (h *router) Register(cmdId int32, handler Handler) {
 }
 
 func defaultHandler(ctx *ImContext) error {
-	logger.Infof("defaultHandler 未知消息类型, cmdId: %d", ctx.CmdId)
+	log.Printf("defaultHandler 未知消息类型, cmdId: %d\n", ctx.CmdId)
 	return nil
 }

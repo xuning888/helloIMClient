@@ -1,40 +1,28 @@
 package svc
 
 import (
-	"encoding/json"
 	"sync"
+
+	"github.com/xuning888/helloIMClient/internal/model"
 )
-
-var Me = &User{}
-
-type User struct {
-	UserId   int64  `json:"userId"`   // UserId
-	UserName string `json:"userName"` // 用户名称
-	UserType int    `json:"userType"` // 用户类型
-}
-
-func (u *User) String() string {
-	marshal, _ := json.Marshal(u)
-	return string(marshal)
-}
 
 type UserSvc struct {
 	users sync.Map
 }
 
-func (um *UserSvc) AddUser(user *User) {
+func (um *UserSvc) AddUser(user *model.ImUser) {
 	um.users.Store(user.UserId, user)
 }
 
-func (um *UserSvc) GetUser(userId int64) *User {
+func (um *UserSvc) GetUser(userId int64) *model.ImUser {
 	if value, ok := um.users.Load(userId); ok {
-		return value.(*User)
+		return value.(*model.ImUser)
 	}
 	// TODO 拉用户
 	return nil
 }
 
-func newUserSvc(users []*User) *UserSvc {
+func NewUserSvc(users []*model.ImUser) *UserSvc {
 	userSvc := &UserSvc{
 		users: sync.Map{},
 	}

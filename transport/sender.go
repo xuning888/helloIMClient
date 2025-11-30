@@ -3,11 +3,12 @@ package transport
 import (
 	"context"
 	"errors"
-	"github.com/xuning888/helloIMClient/pkg/logger"
-	"github.com/xuning888/helloIMClient/protocol"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/xuning888/helloIMClient/pkg/logger"
+	"github.com/xuning888/helloIMClient/protocol"
 )
 
 var (

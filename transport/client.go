@@ -3,30 +3,22 @@ package transport
 import (
 	"context"
 	"errors"
+	"log"
+	"sync"
+	"time"
+
 	"github.com/panjf2000/gnet/v2"
+	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
+	"github.com/xuning888/helloIMClient/internal/http"
 	"github.com/xuning888/helloIMClient/option"
-	"github.com/xuning888/helloIMClient/pkg/logger"
 	"github.com/xuning888/helloIMClient/protocol"
 	"github.com/xuning888/helloIMClient/protocol/echo"
 	"github.com/xuning888/helloIMClient/protocol/heartbeat"
-	"github.com/xuning888/helloIMClient/transport/http"
-	"sync"
-	"time"
-)
-
-var (
-	ErrEmptyServerUrl = errors.New("server url is required")
 )
 
 var (
 	defaultHttpTimeout = time.Second * 3
 )
-
-type ImUser struct {
-	UserId   int64  `json:"userId"`
-	UserType int    `json:"userType"`
-	Token    string `json:"token"`
-}
 
 type Result struct {
 	resp protocol.Response
@@ -44,27 +36,24 @@ func (r *Result) GetErr() error {
 type Dispatch func(result *Result)
 
 type baseInfo struct {
-	User *ImUser
+	User *sqllite.ImUser
 	// 长连接的主备地址
 	IpList []string
 }
 
 type ImClient struct {
-	mux          sync.Mutex   // 保护info
-	Info         *baseInfo    // Info 基础信息
-	serverUrl    string       // IM 服务端WebApi地址
-	ImHttpClient *http.Client // http 客户端
-	cli          *gnet.Client
-	sender       *sender
-	dispatch     Dispatch
+	mux       sync.Mutex // 保护info
+	Info      *baseInfo  // Info 基础信息
+	serverUrl string     // IM 服务端WebApi地址
+	cli       *gnet.Client
+	sender    *sender
+	dispatch  Dispatch
 }
 
-func NewImClient(user *ImUser, dispatch Dispatch, opts ...option.Option) (*ImClient, error) {
+func NewImClient(user *sqllite.ImUser,
+	dispatch Dispatch, opts ...option.Option) (*ImClient, error) {
 	// 加载配置项
 	options := option.LoadOptions(opts...)
-	if options.ServerUrl == "" {
-		return nil, ErrEmptyServerUrl
-	}
 	// 设置默认的http超时时间
 	if options.HttpTimeout == 0 {
 		options.HttpTimeout = defaultHttpTimeout
@@ -161,7 +150,7 @@ func (imCli *ImClient) auth(ctx context.Context, conn *Conn) error {
 func (imCli *ImClient) fetchIpList() error {
 	timeout, cancelFunc := context.WithTimeout(context.Background(), time.Millisecond*200)
 	defer cancelFunc()
-	ips, err := imCli.ImHttpClient.IpList(timeout)
+	ips, err := http.IpList(timeout)
 	if err != nil {
 		return err
 	}
@@ -175,13 +164,14 @@ func (imCli *ImClient) fetchIpList() error {
 func (imCli *ImClient) heartBeat() error {
 	request := heartbeat.NewRequest()
 	if _, err := imCli.WriteMessage(context.Background(), request); err != nil {
-		logger.Errorf("heartBeat error: %v", err)
+		log.Printf("heartBeat error: %v\n", err)
 		return err
 	}
 	return nil
 }
 
-func initImCli(user *ImUser, dispatch Dispatch, options *option.Options) (*ImClient, error) {
+func initImCli(user *sqllite.ImUser,
+	dispatch Dispatch, options *option.Options) (*ImClient, error) {
 	imCli := &ImClient{
 		Info: &baseInfo{
 			User: user,
@@ -189,8 +179,6 @@ func initImCli(user *ImUser, dispatch Dispatch, options *option.Options) (*ImCli
 		dispatch: dispatch,
 	}
 	imCli.serverUrl = options.ServerUrl
-	// 初始化IM的http客户端
-	imCli.ImHttpClient = http.NewClient(imCli.serverUrl, options.HttpTimeout)
 	if err := imCli.fetchIpList(); err != nil {
 		return nil, err
 	}

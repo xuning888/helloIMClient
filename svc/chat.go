@@ -5,6 +5,8 @@ import (
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/xuning888/helloIMClient/internal/model"
 )
 
 type ChatType int
@@ -14,40 +16,34 @@ const (
 	C2G ChatType = 2
 )
 
-type ChatInfo struct {
-	Id                 string `json:"id"`
-	UserID             int64  `json:"userId"`
-	ChatID             int64  `json:"chatId"`
-	ChatType           int32  `json:"chatType"`
-	ChatTop            bool   `json:"chatTop"`
-	ChatMute           bool   `json:"chatMute"`
-	ChatDel            bool   `json:"chatDel"`
-	UpdateTimestamp    int64  `json:"updateTimestamp"`
-	DelTimestamp       int64  `json:"delTimestamp"`
-	LastReadMsgID      int64  `json:"lastReadMsgId"`
-	SubStatus          int32  `json:"subStatus"`
-	JoinGroupTimestamp int64  `json:"joinGroupTimestamp"`
-}
-
 type Chat struct {
-	Id                       int64        // 会话ID
-	Type                     ChatType     // 会话类型
-	Msgs                     *MsgSvc      // 会话中的消息
-	LastChatMessage          *ChatMessage // 会话最后一条消息
-	LastChatMessageTimestamp int64        // 会话最后一条消息的时间戳
-	ChatName                 string       // 会话名称
-	Timestamp                int64        // 会话的更新时间
-	UnReadNum                int          // 会话未读数
+	UserId                   int64
+	ChatId                   int64
+	ChatType                 int32
+	ChatTop                  bool
+	ChatMute                 bool
+	ChatDel                  bool
+	UpdateTimestamp          int64
+	DelTimestamp             int64
+	LastReadMsgID            int64
+	SubStatus                int32
+	JoinGroupTimestamp       int64
+	Msgs                     *MsgSvc
+	LastChatMessage          *model.ChatMessage
+	LastChatMessageTimestamp int64
+	ChatName                 string
+	Timestamp                int64
+	UnReadNum                int
 }
 
 func (c *Chat) Index() string {
-	return fmt.Sprintf("%v_%d", c.Type, c.Id)
+	return fmt.Sprintf("%d_%d", c.ChatType, c.ChatId)
 }
 
-func NewChat(chatId int64, chatType ChatType, chatName string, msgs []*ChatMessage) *Chat {
+func NewChat(chatId int64, chatType int32, chatName string, msgs []*model.ChatMessage) *Chat {
 	chat := &Chat{
-		Id:       chatId,
-		Type:     chatType,
+		ChatId:   chatId,
+		ChatType: chatType,
 		ChatName: chatName,
 	}
 	if len(msgs) != 0 {
@@ -98,12 +94,16 @@ func (cc *ChatSvc) rebuildIndex() {
 	}
 }
 
-func (cc *ChatSvc) GetChat(chatId int64, chatType ChatType) *Chat {
+func (cc *ChatSvc) GetChat(chatId int64, chatType int32) *Chat {
 	cc.mux.RLock()
 	defer cc.mux.RUnlock()
-	index := fmt.Sprintf("%v_%d", chatType, chatId)
+	index := fmt.Sprintf("%d_%d", chatType, chatId)
 	if i, exists := cc.chatIndex[index]; exists {
-		return cc.chats[i]
+		chat := cc.chats[i]
+		if chat != nil {
+			return chat
+		}
+		return nil
 	}
 	return nil
 }
@@ -139,7 +139,7 @@ func (cc *ChatSvc) ChatLen() int {
 	return len(cc.chats)
 }
 
-func newChatSvc(chats []*Chat) *ChatSvc {
+func NewChatSvc(chats []*Chat) *ChatSvc {
 	chatSvc := &ChatSvc{
 		mux:       sync.RWMutex{},
 		chatIndex: make(map[string]int),

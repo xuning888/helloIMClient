@@ -2,12 +2,17 @@ package app
 
 import (
 	"context"
+
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
+	"github.com/xuning888/helloIMClient/internal/http"
 	"github.com/xuning888/helloIMClient/option"
-	"github.com/xuning888/helloIMClient/svc"
 	"github.com/xuning888/helloIMClient/transport"
+	"github.com/xuning888/helloIMClient/tui"
 )
 
 type ImApp struct {
+	user *sqllite.ImUser
 	*router
 }
 
@@ -15,18 +20,25 @@ func (i *ImApp) Start() error {
 	if err := i.imCli.Start(); err != nil {
 		return err
 	}
-	// 拉取用户信息
-	users, err := i.imCli.ImHttpClient.Users(context.Background())
+	users, err := http.Users(context.Background())
 	if err != nil {
 		return err
 	}
-
-	i.commonSvc = svc.NewCommonSvc(users, nil)
+	if err := sqllite.BatchUpsertUsers(context.Background(), users); err != nil {
+		return err
+	}
+	// 拉取用户信息
+	p := tea.NewProgram(tui.InitChatListModel(i.imCli), tea.WithAltScreen())
+	if _, err := p.Run(); err != nil {
+		return err
+	}
+	i.imCli.Close()
 	return nil
 }
 
-func NewApp(imUser *transport.ImUser, opts ...option.Option) (*ImApp, error) {
+func NewApp(imUser *sqllite.ImUser, opts ...option.Option) (*ImApp, error) {
 	imApp := &ImApp{
+		user: imUser,
 		router: &router{
 			handlers: make(map[int32]Handler),
 		},

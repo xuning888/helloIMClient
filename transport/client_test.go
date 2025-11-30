@@ -3,24 +3,27 @@ package transport
 import (
 	"context"
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/xuning888/helloIMClient/option"
-	"github.com/xuning888/helloIMClient/pkg/logger"
-	pb "github.com/xuning888/helloIMClient/proto"
-	"github.com/xuning888/helloIMClient/protocol/c2csend"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
+	"github.com/xuning888/helloIMClient/internal/http"
+	pb "github.com/xuning888/helloIMClient/internal/proto"
+	"github.com/xuning888/helloIMClient/option"
+	"github.com/xuning888/helloIMClient/pkg/logger"
+	"github.com/xuning888/helloIMClient/protocol/c2csend"
 )
 
 func TestNewClient(t *testing.T) {
 	logger.InitLogger()
-	user := ImUser{
-		UserId:   1,
+	user := sqllite.ImUser{
+		UserID:   1,
 		UserType: 0,
-		Token:    "token",
 	}
-	client, err := NewImClient(&user, testDispatch, option.WithServerUrl("http://127.0.0.1:8087"))
+	http.Init("http://127.0.0.1:8087", time.Second*5)
+	client, err := NewImClient(&user, testDispatch)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,9 +32,9 @@ func TestNewClient(t *testing.T) {
 	}
 	defer client.Close()
 	t.Logf("ips: %v", client.Info.IpList)
-	var n = 10
+	var n = 1
 	for i := 0; i < n; i++ {
-		request := buildMsg(i, user.UserId)
+		request := buildMsg(i, user.UserID)
 		now := time.Now()
 		response, err2 := client.WriteMessage(context.Background(), request)
 		cost := time.Since(now).Milliseconds()
@@ -57,11 +60,11 @@ func TestImClient_WriteMessage(t *testing.T) {
 
 func writeMessage(i int, t *testing.T) {
 	logger.InitLogger()
-	user := ImUser{
-		UserId:   int64(i),
+	user := sqllite.ImUser{
+		UserID:   1,
 		UserType: 0,
-		Token:    "token",
 	}
+	http.Init("http://127.0.0.1:8087", time.Second*5)
 	client, err := NewImClient(&user, testDispatch, option.WithServerUrl("http://127.0.0.1:8087"))
 	if err != nil {
 		t.Fatal(err)

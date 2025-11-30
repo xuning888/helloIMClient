@@ -2,7 +2,8 @@ package c2cpush
 
 import (
 	"fmt"
-	pb "github.com/xuning888/helloIMClient/proto"
+
+	"github.com/xuning888/helloIMClient/internal/proto"
 	"github.com/xuning888/helloIMClient/protocol"
 	"google.golang.org/protobuf/proto"
 )
@@ -12,20 +13,25 @@ var _ protocol.Response = &Response{}
 
 // Request 单聊下行消息ACK，由客户端发送
 type Request struct {
-	*pb.C2CPushResponse
+	*helloim_proto.C2CPushResponse
 }
 
 func (r *Request) CmdId() int32 {
-	return int32(pb.CmdId_CMD_ID_C2CPUSH)
+	return int32(helloim_proto.CmdId_CMD_ID_C2CPUSH)
 }
 
 // Response 单聊下行消息，由IM推送
 type Response struct {
-	*pb.C2CPushRequest
+	*helloim_proto.C2CPushRequest
+	msgSeq int32
+}
+
+func (r *Response) MsgSeq() int32 {
+	return r.msgSeq
 }
 
 func (r *Response) CmdId() int32 {
-	return int32(pb.CmdId_CMD_ID_C2CPUSH)
+	return int32(helloim_proto.CmdId_CMD_ID_C2CPUSH)
 }
 
 func (r *Response) ServerSeq() int64 {
@@ -38,7 +44,7 @@ func (r *Response) MsgId() int64 {
 
 func NewRequest(from, to int64, msgId int64) *Request {
 	req := &Request{
-		C2CPushResponse: &pb.C2CPushResponse{
+		C2CPushResponse: &helloim_proto.C2CPushResponse{
 			From:  fmt.Sprintf("%d", from),
 			To:    fmt.Sprintf("%d", to),
 			MsgId: msgId,
@@ -49,7 +55,7 @@ func NewRequest(from, to int64, msgId int64) *Request {
 
 func RequestDecode(frame *protocol.Frame) (protocol.Request, error) {
 	body := frame.Body
-	c2cPushResponse := pb.C2CPushResponse{}
+	c2cPushResponse := helloim_proto.C2CPushResponse{}
 	err := proto.Unmarshal(body, &c2cPushResponse)
 	if err != nil {
 		return nil, err
@@ -62,18 +68,19 @@ func RequestDecode(frame *protocol.Frame) (protocol.Request, error) {
 
 func ResponseDecode(frame *protocol.Frame) (protocol.Response, error) {
 	body := frame.Body
-	c2cPushRequest := pb.C2CPushRequest{}
+	c2cPushRequest := helloim_proto.C2CPushRequest{}
 	err := proto.Unmarshal(body, &c2cPushRequest)
 	if err != nil {
 		return nil, err
 	}
 	return &Response{
 		C2CPushRequest: &c2cPushRequest,
+		msgSeq:         frame.Header.Seq,
 	}, nil
 }
 
 func init() {
-	protocol.RegisterDecoder(int32(pb.CmdId_CMD_ID_C2CPUSH), &protocol.Decoder{
+	protocol.RegisterDecoder(int32(helloim_proto.CmdId_CMD_ID_C2CPUSH), &protocol.Decoder{
 		RequestDecode:  RequestDecode,
 		ResponseDecode: ResponseDecode,
 	})

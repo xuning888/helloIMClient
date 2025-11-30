@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+
+	"github.com/xuning888/helloIMClient/internal/model"
 	"github.com/xuning888/helloIMClient/protocol"
 	"github.com/xuning888/helloIMClient/svc"
 	"github.com/xuning888/helloIMClient/transport"
@@ -22,6 +24,13 @@ func (c *ImContext) DownMessage() protocol.Response {
 // SendMessage 发送上行消息, 同步等待ACK
 func (c *ImContext) SendMessage(ctx context.Context, request protocol.Request) (protocol.Response, error) {
 	return c.imCli.WriteMessage(ctx, request)
+}
+
+func (c *ImContext) AppendMessage(msg *model.ChatMessage) {
+	chat := c.commonSvc.GetChat(msg.ChatId, msg.ChatType)
+	if chat != nil {
+		chat.Msgs.AppendMsg(msg)
+	}
 }
 
 // reset 重制context
