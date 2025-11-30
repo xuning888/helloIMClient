@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/xuning888/helloIMClient/pkg/logger"
 	"gorm.io/gorm/clause"
 )
 
@@ -50,6 +51,7 @@ func SearchUser(ctx context.Context, key string) ([]*ImUser, error) {
 
 func GetUserById(ctx context.Context, userId int64) (*ImUser, error) {
 	user := &ImUser{}
+	logger.Infof("GetUserById userId: %v", userId)
 	err := DB.WithContext(ctx).Where("user_id = ?", userId).First(user).Error
 	if err != nil {
 		return nil, err

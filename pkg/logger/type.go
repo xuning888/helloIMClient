@@ -21,12 +21,12 @@ type Logger interface {
 
 // Debugf logs messages at DEBUG level.
 func Debugf(format string, args ...interface{}) {
-	globalLogger.Sugar().Debugf(format, args)
+	globalLogger.Sugar().Debugf(format, args...)
 }
 
 // Infof logs messages at INFO level.
 func Infof(format string, args ...interface{}) {
-	globalLogger.Sugar().Infof(format, args)
+	globalLogger.Sugar().Infof(format, args...)
 }
 
 func Info(args ...interface{}) {
@@ -35,12 +35,16 @@ func Info(args ...interface{}) {
 
 // Warnf logs messages at WARN level.
 func Warnf(format string, args ...interface{}) {
-	globalLogger.Sugar().Warnf(format, args)
+	globalLogger.Sugar().Warnf(format, args...)
+}
+
+func Warn(args ...interface{}) {
+	globalLogger.Sugar().Warn(args)
 }
 
 // Errorf logs messages at ERROR level.
 func Errorf(format string, args ...interface{}) {
-	globalLogger.Sugar().Errorf(format, args)
+	globalLogger.Sugar().Errorf(format, args...)
 }
 
 func Error(args ...interface{}) {
@@ -49,7 +53,7 @@ func Error(args ...interface{}) {
 
 // Fatalf logs messages at FATAL level.
 func Fatalf(format string, args ...interface{}) {
-	globalLogger.Sugar().Fatalf(format, args)
+	globalLogger.Sugar().Fatalf(format, args...)
 }
 
 // Sync sync

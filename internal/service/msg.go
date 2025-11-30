@@ -13,8 +13,10 @@ import (
 func LastMessage(ctx context.Context, chatId, msgId int64, chatType int32) (*sqllite.ChatMessage, error) {
 	lastMsg, err := sqllite.GetMessage(ctx, chatId, msgId)
 	if err == nil {
+		logger.Infof("LastMessage from DB chatId: %v, msgId: %v, chatType: %v", chatId, msgId, chatType)
 		return lastMsg, nil
 	}
+	logger.Warnf("LastMessage, getLasetMessage from DB error: %v", err)
 	// 查询服务器
 	if lastMsg, err2 := http.LastMessage(conf.UserId, chatId, chatType); err2 != nil {
 		// 异步更新会话

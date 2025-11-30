@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/panjf2000/gnet/v2"
-	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
 	"github.com/xuning888/helloIMClient/internal/http"
 	"github.com/xuning888/helloIMClient/option"
 	"github.com/xuning888/helloIMClient/protocol"
@@ -36,7 +35,6 @@ func (r *Result) GetErr() error {
 type Dispatch func(result *Result)
 
 type baseInfo struct {
-	User *sqllite.ImUser
 	// 长连接的主备地址
 	IpList []string
 }
@@ -50,8 +48,7 @@ type ImClient struct {
 	dispatch  Dispatch
 }
 
-func NewImClient(user *sqllite.ImUser,
-	dispatch Dispatch, opts ...option.Option) (*ImClient, error) {
+func NewImClient(dispatch Dispatch, opts ...option.Option) (*ImClient, error) {
 	// 加载配置项
 	options := option.LoadOptions(opts...)
 	// 设置默认的http超时时间
@@ -65,7 +62,7 @@ func NewImClient(user *sqllite.ImUser,
 		options.LingerMs = time.Millisecond * 10
 	}
 	// 初始化imcli
-	imCli, err := initImCli(user, dispatch, options)
+	imCli, err := initImCli(dispatch, options)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +137,7 @@ func (imCli *ImClient) doDail(addr string) (*Conn, error) {
 }
 
 func (imCli *ImClient) auth(ctx context.Context, conn *Conn) error {
-	err := conn.authReq(ctx, imCli.Info.User)
+	err := conn.authReq(ctx)
 	if err != nil {
 		return err
 	}
@@ -170,12 +167,9 @@ func (imCli *ImClient) heartBeat() error {
 	return nil
 }
 
-func initImCli(user *sqllite.ImUser,
-	dispatch Dispatch, options *option.Options) (*ImClient, error) {
+func initImCli(dispatch Dispatch, options *option.Options) (*ImClient, error) {
 	imCli := &ImClient{
-		Info: &baseInfo{
-			User: user,
-		},
+		Info:     &baseInfo{},
 		dispatch: dispatch,
 	}
 	imCli.serverUrl = options.ServerUrl

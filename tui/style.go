@@ -2,78 +2,47 @@ package tui
 
 import "github.com/charmbracelet/lipgloss"
 
+// 样式优化
 var (
-	primaryColor    = lipgloss.Color("12") // 亮蓝色
-	backgroundColor = lipgloss.Color("0")  // 黑色背景
-	borderColor     = lipgloss.Color("8")  // 灰色边框
-	textColor       = lipgloss.Color("15") // 白色文本
-	subtextColor    = lipgloss.Color("8")  // 暗灰色文本
-	selectedColor   = lipgloss.Color("14") // 亮青色
-	myMsgColor      = lipgloss.Color("10") // 亮绿色
-	otherMsgColor   = lipgloss.Color("11") // 亮黄色
-	unreadColor     = lipgloss.Color("9")  // 亮红色
-	headerColor     = lipgloss.Color("13") // 亮紫色
+	// 更现代的配色
+	backgroundColor = lipgloss.Color("#1E1E1E") // 深灰背景
+	borderColor     = lipgloss.Color("#404040") // 边框色
+	textColor       = lipgloss.Color("#FFFFFF") // 白色文本
+	subtextColor    = lipgloss.Color("#888888") // 灰色副文本
+	selectedColor   = lipgloss.Color("#2A2A2A") // 选中项背景
+	myMsgColor      = lipgloss.Color("#007AFF") // 自己消息颜色
+	otherMsgColor   = lipgloss.Color("#404040") // 他人消息颜色
+	headerColor     = lipgloss.Color("#2A2A2A") // 标题背景
 )
 
 var (
-	// 我发送的消息的样式
+	// 消息样式
 	myMsgStyle = lipgloss.NewStyle().
-			Background(backgroundColor).
-			Foreground(myMsgColor).
+			Background(myMsgColor).
+			Foreground(textColor).
 			Padding(0, 1).
-			Margin(0, 0, 1, 0).
-			Border(lipgloss.NormalBorder(), false, false, false, true).
-			BorderForeground(myMsgColor)
+			Margin(0, 2, 1, 2).
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(myMsgColor).
+			MaxWidth(40)
 
-	// 别人发送的消息的样式
 	yourMsgStyle = lipgloss.NewStyle().
-			Background(backgroundColor).
-			Foreground(otherMsgColor).
+			Background(otherMsgColor).
+			Foreground(textColor).
 			Padding(0, 1).
-			Margin(0, 0, 1, 0).
-			Border(lipgloss.NormalBorder(), false, false, false, true).
-			BorderForeground(otherMsgColor)
+			Margin(0, 2, 1, 2).
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(otherMsgColor).
+			MaxWidth(40)
 
-	headerStyle = lipgloss.NewStyle().
-			Background(backgroundColor).
-			Foreground(headerColor).
-			Padding(0, 1).
-			Bold(true).
-			Border(lipgloss.DoubleBorder(), false, false, true, false).
-			BorderForeground(headerColor)
-
-	// 会话项
+	// 聊天列表样式
 	chatItemStyle = lipgloss.NewStyle().
 			Background(backgroundColor).
 			Foreground(textColor).
-			Padding(0, 2).
-			Margin(0, 0, 0, 0).
-			Border(lipgloss.NormalBorder(), false, false, false, true).
-			BorderForeground(borderColor)
+			Padding(0, 1).
+			Height(3)
 
 	selectedChatStyle = chatItemStyle.Copy().
-				Background(backgroundColor).
-				Foreground(selectedColor).
-				Bold(true).
-				Border(lipgloss.NormalBorder(), false, false, false, true).
-				BorderForeground(selectedColor)
-
-	// 分隔线样式
-	separatorStyle = lipgloss.NewStyle().
-			Foreground(borderColor).
-			Bold(true)
-
-	// 会话列表
-	chatListStyle = lipgloss.NewStyle().
-			Background(backgroundColor).
-			Foreground(textColor).
-			Padding(0, 1)
-
-	// 输入框样式
-	inputStyle = lipgloss.NewStyle().
-			Background(backgroundColor).
-			Foreground(textColor).
-			Padding(0, 1).
-			Border(lipgloss.NormalBorder(), true, false, false, false).
-			BorderForeground(borderColor)
+				Background(selectedColor).
+				Foreground(textColor)
 )

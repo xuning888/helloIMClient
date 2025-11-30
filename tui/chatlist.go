@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
 	"github.com/xuning888/helloIMClient/internal/service"
 	"github.com/xuning888/helloIMClient/pkg"
@@ -24,7 +25,7 @@ type chatListModel struct {
 	height       int
 }
 
-func InitChatListModel(imCli *transport.ImClient) tea.Model {
+func initChatListModel(imCli *transport.ImClient) chatListModel {
 	// 拉去全部会话
 	ctx := context.Background()
 	chats, err := service.GetAllChat(ctx)
@@ -34,13 +35,11 @@ func InitChatListModel(imCli *transport.ImClient) tea.Model {
 	}
 	// 获取会话的最后一条消息
 	lastMessages := service.BatchLastMessage(ctx, chats)
-	return &chatListModel{
+	return chatListModel{
 		imCli:        imCli,
 		cursor:       0,
 		chats:        chats,
 		lastMessages: lastMessages,
-		width:        500,
-		height:       500,
 	}
 }
 
@@ -61,9 +60,8 @@ func (m chatListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor++
 			}
 		case tea.KeySpace.String(): // 选中会话
-			chat := m.chats[m.cursor]                // 获取会话
-			model := initChatModel(chat, m, m.imCli) // 进入会话
-			return model, nil
+			chat := m.chats[m.cursor] // 获取会话
+			return m, fetchChatModel(chat)
 		case tea.KeyCtrlC.String(): // 退出程序
 			return m, tea.Quit
 		}
@@ -94,43 +92,67 @@ func (m chatListModel) View() string {
 
 func (m chatListModel) chatListView() string {
 	var content strings.Builder
-	header := headerStyle.Width(m.width).Render("helloIm")
-	content.WriteString(header + "\n")
+
+	// 列表标题
+	title := lipgloss.NewStyle().
+		Width(m.width).
+		Height(3).
+		Background(headerColor).
+		Foreground(textColor).
+		Bold(true).
+		Align(lipgloss.Center).
+		Render(" 会话列表 ")
+	content.WriteString(title + "\n")
+
+	// 会话项
 	for i, chat := range m.chats {
-		timeStr := pkg.FormatTime(chat.UpdateTimestamp)
-		var name = ""
+		var name string
 		if chat.ChatType == 1 {
 			if user, err := sqllite.GetUserById(context.Background(), chat.ChatId); err == nil {
 				name = user.UserName
 			}
 		}
-		chatInfo := fmt.Sprintf("%-20s %s", name, timeStr)
-		lastMessage := m.lastMessages[chat.Key()]
-		if lastMessage != nil {
-			// 如果会话的最后一条消息不为空, 也展示进去
-			chatInfo += "\n" + processLastMessage(lastMessage)
+
+		lastMsg := m.lastMessages[chat.Key()]
+		lastMsgText := ""
+		if lastMsg != nil {
+			lastMsgText = truncateText(lastMsg.MsgContent, 20)
 		}
-		var item string
+
+		timeStr := pkg.FormatTime(chat.UpdateTimestamp)
+
+		// 会话项内容
+		chatContent := fmt.Sprintf("%s\n%s", name, lastMsgText)
+		timeContent := fmt.Sprintf("%s", timeStr)
+
+		var itemStyle lipgloss.Style
 		if i == m.cursor {
-			item = selectedChatStyle.Width(m.width - 4).Render(chatInfo)
+			itemStyle = selectedChatStyle
 		} else {
-			item = chatItemStyle.Width(m.width - 4).Render(chatInfo)
+			itemStyle = chatItemStyle
 		}
+
+		item := lipgloss.JoinHorizontal(lipgloss.Top,
+			itemStyle.Copy().Width(m.width-10).Render(chatContent),
+			lipgloss.NewStyle().Width(8).Align(lipgloss.Right).Render(timeContent),
+		)
+
 		content.WriteString(item + "\n")
-	}
-	// 分割线
-	separator := separatorStyle.Width(m.width).Render(strings.Repeat("─", m.width))
-	content.WriteString(separator + "\n")
 
-	return chatListStyle.Render(content.String())
-}
-
-func processLastMessage(lastMessage *sqllite.ChatMessage) string {
-	if lastMessage == nil {
-		return ""
+		// 分隔线
+		if i < len(m.chats)-1 {
+			separator := lipgloss.NewStyle().
+				Width(m.width).
+				Foreground(borderColor).
+				Render(strings.Repeat("─", m.width))
+			content.WriteString(separator + "\n")
+		}
 	}
-	content := lastMessage.MsgContent
-	return truncateText(content, 30)
+
+	return lipgloss.NewStyle().
+		Width(m.width).
+		Height(m.height).
+		Render(content.String())
 }
 
 func truncateText(text string, maxLen int) string {
@@ -138,4 +160,9 @@ func truncateText(text string, maxLen int) string {
 		return text
 	}
 	return text[:maxLen-3] + "..."
+}
+
+func (m *chatListModel) updateSize(width, height int) {
+	m.width = width
+	m.height = height
 }

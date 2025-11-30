@@ -28,7 +28,7 @@ func (i *ImApp) Start() error {
 		return err
 	}
 	// 拉取用户信息
-	p := tea.NewProgram(tui.InitChatListModel(i.imCli), tea.WithAltScreen())
+	p := tea.NewProgram(tui.InitMainModel(i.imCli), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		return err
 	}
@@ -36,14 +36,13 @@ func (i *ImApp) Start() error {
 	return nil
 }
 
-func NewApp(imUser *sqllite.ImUser, opts ...option.Option) (*ImApp, error) {
+func NewApp(opts ...option.Option) (*ImApp, error) {
 	imApp := &ImApp{
-		user: imUser,
 		router: &router{
 			handlers: make(map[int32]Handler),
 		},
 	}
-	imClient, err := transport.NewImClient(imUser, imApp.dispatch, opts...)
+	imClient, err := transport.NewImClient(imApp.dispatch, opts...)
 	if err != nil {
 		return nil, err
 	}

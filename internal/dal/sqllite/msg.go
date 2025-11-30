@@ -71,7 +71,9 @@ func SaveOrUpdateMessage(ctx context.Context, message *ChatMessage) error {
 }
 
 func GetMessage(ctx context.Context, chatId, msgId int64) (*ChatMessage, error) {
-	var msg *ChatMessage
+	msg := &ChatMessage{}
+	DB.WithContext(ctx).Model(msg).
+		Where("chat_id = ? and msg_id = ?", chatId, msgId).Find(msg)
 	err := DB.WithContext(ctx).Model(msg).
 		Where("chat_id = ? and msg_id = ?", chatId, msgId).
 		Find(msg).Error
@@ -87,6 +89,22 @@ func GetRecentMessages(ctx context.Context, chatId int64, limit int) ([]*ChatMes
 		Model(&ChatMessage{}).
 		Where("chat_id = ?", chatId).
 		Order("msg_id desc").
+		Limit(limit).
+		Find(&msgs).Error
+	if err != nil {
+		return nil, err
+	}
+	return msgs, nil
+}
+
+// GetMessagesWithOffset 分页获取消息
+func GetMessagesWithOffset(ctx context.Context, chatId int64, offset, limit int) ([]*ChatMessage, error) {
+	var msgs []*ChatMessage
+	err := DB.WithContext(ctx).
+		Model(&ChatMessage{}).
+		Where("chat_id = ?", chatId).
+		Order("msg_id desc").
+		Offset(offset).
 		Limit(limit).
 		Find(&msgs).Error
 	if err != nil {

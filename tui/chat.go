@@ -21,32 +21,27 @@ import (
 
 var _ tea.Model = &chatModel{}
 
-const gap = "\n\n"
-
 type chatModel struct {
-	imCli       *transport.ImClient
-	chat        *sqllite.ImChat
-	viewport    viewport.Model
-	textarea    textarea.Model
-	senderStyle lipgloss.Style
-	messages    []*sqllite.ChatMessage
-	chatList    chatListModel
-	err         error
-	width       int
-	height      int
+	imCli    *transport.ImClient
+	chat     *sqllite.ImChat
+	viewport viewport.Model
+	textarea textarea.Model
+	messages []*sqllite.ChatMessage
+	chatList chatListModel
+	width    int
+	height   int
 }
 
-func initChatModel(chat *sqllite.ImChat, chatList chatListModel, imCli *transport.ImClient) tea.Model {
+func initChatModel(chat *sqllite.ImChat, chatList chatListModel, imCli *transport.ImClient) *chatModel {
 	ta := textarea.New()
-	ta.Placeholder = "Send a message..."
+	ta.Placeholder = "输入消息..."
 	ta.Focus()
-	ta.SetWidth(50)
-	ta.SetHeight(3)
-	ta.FocusedStyle.CursorLine = lipgloss.NewStyle()
+	ta.Prompt = "│ "
 	ta.ShowLineNumbers = false
 	ta.KeyMap.InsertNewline.SetEnabled(false)
 
-	vp := viewport.New(30, 5)
+	vp := viewport.New(50, 10)
+	vp.Style = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(borderColor)
 
 	// 获取最新离线消息
 	messages, err := service.GetLatestOfflineMessages(context.Background(), chat.ChatId, chat.ChatType)
@@ -55,13 +50,12 @@ func initChatModel(chat *sqllite.ImChat, chatList chatListModel, imCli *transpor
 		messages = make([]*sqllite.ChatMessage, 0)
 	}
 	return &chatModel{
-		imCli:       imCli,
-		chat:        chat,
-		viewport:    vp,
-		textarea:    ta,
-		senderStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("5")),
-		messages:    messages,
-		chatList:    chatList,
+		imCli:    imCli,
+		chat:     chat,
+		viewport: vp,
+		textarea: ta,
+		messages: messages,
+		chatList: chatList,
 	}
 }
 
@@ -70,41 +64,67 @@ func (m chatModel) Init() tea.Cmd {
 }
 
 func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var tiCmd, vpCmd tea.Cmd
-	m.textarea, tiCmd = m.textarea.Update(msg)
-	m.viewport, vpCmd = m.viewport.Update(msg)
-
+	var cmds []tea.Cmd
 	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		m.viewport.Width = m.width
-		m.textarea.SetWidth(m.width)
-		m.viewport.Height = m.height - m.textarea.Height() - lipgloss.Height(gap)
-		if len(m.messages) > 0 {
-			m.updateViewportContent()
-		}
-		m.viewport.GotoBottom()
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEsc:
-			return m.chatList, fetchUpdatedChatListCmd()
+			return m, fetchBackToListMsg()
 		case tea.KeyEnter:
-			m.sendMessage()
-			m.updateViewportContent()
-			m.viewport.GotoBottom()
-			m.textarea.Reset()
-			m.chatList.Update(fetchUpdatedChatListCmd())
+			if m.textarea.Focused() {
+				m.sendMessage()
+				m.textarea.Reset()
+				cmds = append(cmds, viewport.Sync(m.viewport))
+			}
+			cmds = append(cmds, fetchUpdatedChatListCmd())
 		}
-	case errMsg:
-		m.err = msg
-		return m, nil
 	}
-	return m, tea.Batch(tiCmd, vpCmd)
+	// 更新子组件
+	var taCmd, vpCmd tea.Cmd
+	m.textarea, taCmd = m.textarea.Update(msg)
+	m.viewport, vpCmd = m.viewport.Update(msg)
+
+	if taCmd != nil {
+		cmds = append(cmds, taCmd)
+	}
+	if vpCmd != nil {
+		cmds = append(cmds, vpCmd)
+	}
+	return &m, tea.Batch(cmds...)
 }
 
 func (m chatModel) View() string {
-	return m.messageView()
+	var chatName string
+	if m.chat.ChatType == 1 {
+		if user, err := sqllite.GetUserById(context.Background(), m.chat.ChatId); err == nil {
+			chatName = user.UserName
+		}
+	}
+	title := lipgloss.NewStyle().
+		Width(m.width).
+		Height(2).
+		Background(headerColor).
+		Foreground(textColor).
+		Bold(true).
+		Align(lipgloss.Center).
+		Render(fmt.Sprintf("与 %s 聊天中", chatName))
+
+	// 消息区域
+	messageArea := m.viewMessage()
+	messageArea = lipgloss.NewStyle().
+		Width(m.width).
+		Height(m.height - 5). // 减去标题和输入框高度
+		Render(messageArea)
+
+	// 输入区域
+	inputArea := lipgloss.NewStyle().
+		Width(m.width).
+		Height(3).
+		Border(lipgloss.NormalBorder(), true, false, false, false).
+		BorderForeground(borderColor).
+		Render(m.textarea.View())
+
+	return lipgloss.JoinVertical(lipgloss.Left, title, messageArea, inputArea)
 }
 
 func (m chatModel) sendMessage() {
@@ -122,6 +142,14 @@ func (m chatModel) sendMessage() {
 	m.saveC2CMessage(request, response)
 }
 
+func (m *chatModel) updateSize(width, height int) {
+	m.width = width
+	m.height = height
+	m.viewport.Width = width - 4
+	m.viewport.Height = height - 7 // 调整视口大小
+	m.textarea.SetWidth(width - 2)
+}
+
 func (m chatModel) saveC2CMessage(request *c2csend.Request, response protocol.Response) {
 	chat := m.chat
 	message := sqllite.NewMessage(1, chat.ChatId, response.MsgId(), conf.UserId, chat.ChatId,
@@ -131,74 +159,57 @@ func (m chatModel) saveC2CMessage(request *c2csend.Request, response protocol.Re
 		logger.Errorf("saveC2CMessage error: %v", err)
 		return
 	}
-	m.updateMessage()
+	pm := &m
+	pm.updateMessage()
 }
 
-func (m chatModel) updateMessage() {
-	messages, err := sqllite.GetRecentMessages(context.Background(), m.chat.ChatId, 20)
+func (m *chatModel) updateMessage() {
+	chat := m.chat
+	messages, err := service.GetLatestOfflineMessages(context.Background(), chat.ChatId, chat.ChatType)
 	if err != nil {
 		return
 	}
 	m.messages = messages
 }
 
-func (m chatModel) updateViewportContent() {
-	message := m.concatMessage()
-	m.viewport.SetContent(message)
-}
-
-func (m chatModel) concatMessage() string {
+func (m *chatModel) viewMessage() string {
 	if len(m.messages) == 0 {
-		return ""
+		return lipgloss.Place(m.viewport.Width, m.viewport.Height, lipgloss.Center, lipgloss.Center,
+			"暂无消息，开始对话吧！")
 	}
-	var sbd strings.Builder
-	halfWidth := m.width / 2
-	fullWidth := m.width - 4
-
-	for _, msg := range m.messages {
+	chat := m.chat
+	fetchMessagees, err := service.GetLatestOfflineMessages(context.Background(), chat.ChatId, chat.ChatType)
+	if err != nil {
+		return lipgloss.Place(m.viewport.Width, m.viewport.Height, lipgloss.Center, lipgloss.Center,
+			"暂无消息，开始对话吧！")
+	}
+	var messages strings.Builder
+	for _, msg := range fetchMessagees {
 		timeStr := pkg.FormatTime(msg.SendTime)
 		if msg.MsgFrom == conf.UserId {
-			sbd.WriteString(m.renderMyMessage(msg.MsgContent, timeStr, halfWidth, fullWidth))
+			// 自己发送的消息，靠右显示
+			content := lipgloss.JoinVertical(lipgloss.Left,
+				lipgloss.NewStyle().Foreground(subtextColor).Render(timeStr),
+				msg.MsgContent,
+			)
+			message := myMsgStyle.Render(content)
+			message = lipgloss.NewStyle().Width(m.viewport.Width).Align(lipgloss.Right).Render(message)
+			messages.WriteString(message + "\n")
 		} else {
-			name := ""
+			// 对方发送的消息，靠左显示
+			var name string
 			if user, err := sqllite.GetUserById(context.Background(), msg.MsgFrom); err == nil {
 				name = user.UserName
-			} else {
-				logger.Errorf("GetUserById error: %v", err)
 			}
-			sbd.WriteString(m.renderYourMessage(name, msg.MsgContent, timeStr, halfWidth))
+			content := lipgloss.JoinVertical(lipgloss.Left,
+				lipgloss.NewStyle().Foreground(subtextColor).Render(fmt.Sprintf("%s %s", name, timeStr)),
+				msg.MsgContent,
+			)
+			message := yourMsgStyle.Render(content)
+			messages.WriteString(message + "\n")
 		}
 	}
-	return sbd.String()
-}
-
-func (m chatModel) renderMyMessage(content, time string, halfWidth, fullWidth int) string {
-	msgContent := fmt.Sprintf("%s\n%s %s", content, "You", time)
-	msgBlock := myMsgStyle.Width(halfWidth).Align(lipgloss.Right).Render(msgContent)
-	return lipgloss.NewStyle().Align(lipgloss.Right).Width(fullWidth).Render(msgBlock) + "\n"
-}
-
-func (m chatModel) renderYourMessage(name, content, time string, halfWidth int) string {
-	msgContent := fmt.Sprintf("%s %s\n%s", name, time, content)
-	msgBlock := yourMsgStyle.Width(halfWidth).Render(msgContent)
-	return msgBlock + "\n"
-}
-
-func (m chatModel) messageView() string {
-	var content strings.Builder
-
-	message := m.concatMessage()
-
-	m.viewport.SetContent(message)
-	content.WriteString(m.viewport.View() + "\n")
-
-	input := inputStyle.Width(m.width).Render(m.textarea.View())
-	content.WriteString(input)
-
-	help := lipgloss.NewStyle().
-		Foreground(subtextColor).
-		Align(lipgloss.Center).
-		Render("Enter 发送 • Esc 返回")
-	content.WriteString("\n" + help)
-	return content.String()
+	m.viewport.SetContent(messages.String())
+	m.viewport.GotoBottom()
+	return m.viewport.View()
 }

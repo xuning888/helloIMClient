@@ -8,10 +8,6 @@ import (
 	"github.com/xuning888/helloIMClient/internal/service"
 )
 
-type (
-	errMsg error
-)
-
 type chatListUpdatedMsg struct {
 	lastMessages map[string]*sqllite.ChatMessage
 	chats        []*sqllite.ImChat
@@ -27,5 +23,25 @@ func fetchUpdatedChatListCmd() tea.Cmd {
 		}
 		lastMessages := service.BatchLastMessage(ctx, chats)
 		return chatListUpdatedMsg{chats: chats, lastMessages: lastMessages, err: nil}
+	}
+}
+
+type selectChatMsg struct {
+	chat *sqllite.ImChat
+}
+
+func fetchChatModel(chat *sqllite.ImChat) tea.Cmd {
+	return func() tea.Msg {
+		return selectChatMsg{
+			chat: chat,
+		}
+	}
+}
+
+type backToListMsg struct{}
+
+func fetchBackToListMsg() tea.Cmd {
+	return func() tea.Msg {
+		return backToListMsg{}
 	}
 }

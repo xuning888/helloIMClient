@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 
 	"github.com/panjf2000/gnet/v2"
-	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
+	"github.com/xuning888/helloIMClient/conf"
 	"github.com/xuning888/helloIMClient/protocol"
 	"github.com/xuning888/helloIMClient/protocol/auth"
 )
@@ -56,9 +56,9 @@ func (c *Conn) asyncWrite0(item *syncItem) error {
 	return nil
 }
 
-func (c *Conn) authReq(ctx context.Context, user *sqllite.ImUser) error {
+func (c *Conn) authReq(ctx context.Context) error {
 	// TODO token
-	authRequest := auth.NewRequest(user.UserID, int32(user.UserType), "")
+	authRequest := auth.NewRequest(conf.UserId, 0, "")
 	item := newSyncItem(authRequest)
 	if err := c.asyncWrite0(item); err != nil {
 		return err

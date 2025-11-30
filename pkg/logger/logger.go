@@ -36,7 +36,6 @@ func InitLogger() error {
 
 	core := zapcore.NewTee(
 		zapcore.NewCore(encoder, fileWriter, DefaultZapLoggerConfig.Level),
-		zapcore.NewCore(encoder, zapcore.AddSync(zapcore.Lock(os.Stderr)), DefaultZapLoggerConfig.Level),
 	)
 	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))
 	zap.ReplaceGlobals(logger)

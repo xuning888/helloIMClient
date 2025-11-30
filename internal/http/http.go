@@ -7,6 +7,7 @@ import (
 
 	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
 	"github.com/xuning888/helloIMClient/pkg"
+	"github.com/xuning888/helloIMClient/pkg/logger"
 )
 
 var (
@@ -53,6 +54,7 @@ func Users(ctx context.Context) ([]*sqllite.ImUser, error) {
 		return nil, fmt.Errorf("allUser 业务异常: code=%d, msg=%s", result.Code, result.Msg)
 	}
 	users := result.Data
+	logger.Infof("批量获取用户信息成功, users.size: %d", len(users))
 	return users, nil
 }
 

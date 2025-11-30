@@ -2,9 +2,11 @@ package transport
 
 import (
 	"context"
-	"github.com/xuning888/helloIMClient/protocol"
 	"sync"
 	"sync/atomic"
+
+	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
+	"github.com/xuning888/helloIMClient/protocol"
 )
 
 type seqAdder struct {
@@ -79,7 +81,7 @@ func (s *syncQueue) put(request *syncItem) bool {
 	if s.closed {
 		return false
 	}
-	request.seq = s.adder.seq()
+	request.seq = sqllite.GetSeq()
 	s.queue = append(s.queue, request)
 	return true
 }
