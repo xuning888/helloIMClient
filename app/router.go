@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/xuning888/helloIMClient/pkg/logger"
-	"github.com/xuning888/helloIMClient/svc"
 	"github.com/xuning888/helloIMClient/transport"
 )
 
@@ -18,9 +17,8 @@ var contextPool = sync.Pool{
 type Handler func(ctx *ImContext) error
 
 type router struct {
-	imCli     *transport.ImClient
-	commonSvc *svc.CommonSvc
-	handlers  map[int32]Handler
+	imCli    *transport.ImClient
+	handlers map[int32]Handler
 }
 
 func (h *router) route(ctx *ImContext) error {
@@ -37,7 +35,6 @@ func (h *router) dispatch(result *transport.Result) {
 	context.imCli = h.imCli                  // 设置imCli
 	context.CmdId = result.GetResp().CmdId() // 设置指令号
 	context.response = result.GetResp()      // 设置下行消息
-	context.commonSvc = h.commonSvc          // commonSvc
 	defer func() {
 		context.reset()
 		contextPool.Put(context)
