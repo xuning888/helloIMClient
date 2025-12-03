@@ -115,12 +115,12 @@ func backoff(attempt int, min time.Duration, max time.Duration) time.Duration {
 	return d
 }
 
-func newSender(transport *Transport, lingerMs time.Duration, maxAttempts int, seq int32) *sender {
+func newSender(transport *Transport, lingerMs time.Duration, maxAttempts int) *sender {
 	sender := &sender{
 		transport:   transport,
 		lingerMs:    lingerMs,
 		maxAttempts: maxAttempts,
-		queue:       newSyncQueue(1000, seq),
+		queue:       newSyncQueue(1000),
 		wg:          sync.WaitGroup{},
 	}
 	// 开启一个 goroutine 处理写请求

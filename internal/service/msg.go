@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"sync"
 
 	"github.com/xuning888/helloIMClient/conf"
 	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
@@ -36,35 +35,15 @@ func BatchLastMessage(ctx context.Context, chats []*sqllite.ImChat) map[string]*
 	if len(chats) == 0 {
 		return make(map[string]*sqllite.ChatMessage)
 	}
-	var wg sync.WaitGroup
-	cache := sync.Map{}
-	sem := make(chan struct{}, 5)
-	for _, chat := range chats {
-		wg.Add(1)
-		sem <- struct{}{}
-		go func(c *sqllite.ImChat) {
-			defer func() {
-				wg.Done()
-				<-sem
-			}()
-			// 拉取最后一条消息
-			lastMsg, err := LastMessage(ctx, c.ChatId, c.LastReadMsgId, c.ChatType)
-			if err != nil {
-				logger.Errorf("failed to get last message for chatId=%d: %v", c.ChatId, err)
-				return
-			}
-			// 保存到缓存
-			cache.Store(c.Key(), lastMsg)
-		}(chat)
-	}
-	wg.Wait()
 	result := make(map[string]*sqllite.ChatMessage)
-	cache.Range(func(key, value any) bool {
-		k := key.(string)
-		msg := value.(*sqllite.ChatMessage)
-		result[k] = msg
-		return true
-	})
+	for _, chat := range chats {
+		// 拉取最后一条消息
+		lastMsg, err := LastMessage(ctx, chat.ChatId, chat.LastReadMsgId, chat.ChatType)
+		if err != nil {
+			logger.Errorf("failed to get last message for chatId=%d: %v", chat.ChatId, err)
+		}
+		result[chat.Key()] = lastMsg
+	}
 	return result
 }
 

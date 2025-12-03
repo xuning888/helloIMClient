@@ -60,8 +60,13 @@ func (m chatListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor++
 			}
 		case tea.KeySpace.String(): // 选中会话
-			chat := m.chats[m.cursor] // 获取会话
-			return m, fetchChatModel(chat)
+			if m.cursor >= 0 && m.cursor < len(m.chats) {
+				chat := m.chats[m.cursor] // 获取会话
+				return m, fetchChatModel(chat)
+			}
+			return m, nil
+		case tea.KeyF3.String(): // 进入搜索
+			return m, fetchStartSearchCmd()
 		case tea.KeyCtrlC.String(): // 退出程序
 			return m, tea.Quit
 		}
@@ -69,19 +74,21 @@ func (m chatListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err != nil {
 			return m, nil
 		}
-		selected := m.cursor
-		selectedChat := m.chats[selected]
 		newSelected := 0
-		for i, chat := range msg.chats {
-			if chat.ChatId == selectedChat.ChatId && chat.ChatType == selectedChat.ChatType {
-				newSelected = i
-				break
+		selected := m.cursor
+		if selected >= 0 && selected < len(m.chats) {
+			selectedChat := m.chats[selected]
+			for i, chat := range msg.chats {
+				if chat.ChatId == selectedChat.ChatId && chat.ChatType == selectedChat.ChatType {
+					newSelected = i
+					break
+				}
 			}
 		}
 		m.chats = msg.chats
 		m.lastMessages = msg.lastMessages
 		m.cursor = newSelected
-		fmt.Println("更新会话列表")
+		logger.Info("更新会话列表")
 	}
 	return m, nil
 }
@@ -112,7 +119,6 @@ func (m chatListModel) chatListView() string {
 				name = user.UserName
 			}
 		}
-
 		lastMsg := m.lastMessages[chat.Key()]
 		lastMsgText := ""
 		if lastMsg != nil {

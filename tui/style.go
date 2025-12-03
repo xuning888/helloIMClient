@@ -37,12 +37,12 @@ var (
 
 	// 聊天列表样式
 	chatItemStyle = lipgloss.NewStyle().
-			Background(backgroundColor).
 			Foreground(textColor).
 			Padding(0, 1).
 			Height(3)
 
 	selectedChatStyle = chatItemStyle.Copy().
+				Background(backgroundColor).
 				Background(selectedColor).
 				Foreground(textColor)
 )

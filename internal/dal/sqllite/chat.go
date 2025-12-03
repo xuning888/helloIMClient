@@ -2,10 +2,14 @@ package sqllite
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
+	"time"
 
+	"github.com/xuning888/helloIMClient/conf"
+	"github.com/xuning888/helloIMClient/pkg/logger"
 	"gorm.io/gorm"
 )
 
@@ -27,8 +31,33 @@ func (ImChat) TableName() string {
 	return "im_chat"
 }
 
+func (chat ImChat) String() string {
+	marshal, err := json.Marshal(&chat)
+	if err != nil {
+		return ""
+	}
+	return string(marshal)
+}
+
 func (c ImChat) Key() string {
 	return fmt.Sprintf("%d_%d_%d", c.UserId, c.ChatId, c.ChatType)
+}
+
+func NewImChat(userId, chatId int64, chatType int32) *ImChat {
+	chat := &ImChat{
+		UserId:             userId,
+		ChatId:             chatId,
+		ChatType:           chatType,
+		ChatTop:            false,
+		ChatMute:           false,
+		ChatDel:            false,
+		UpdateTimestamp:    time.Now().UnixMilli(),
+		DelTimestamp:       0,
+		LastReadMsgId:      0,
+		SubStatus:          0,
+		JoinGroupTimestamp: 0,
+	}
+	return chat
 }
 
 // SortChatList 会话列表排序
@@ -88,6 +117,7 @@ func SelectChat(ctx context.Context, userId, chatId int64) (*ImChat, error) {
 func MultiGetChat(ctx context.Context) ([]*ImChat, error) {
 	var chats = make([]*ImChat, 0)
 	res := DB.WithContext(ctx).Model(&ImChat{}).
+		Where("user_id = ?", conf.UserId).
 		Order("chat_top desc").
 		Order("update_timestamp desc").
 		Limit(100).Find(&chats)
@@ -99,5 +129,16 @@ func MultiGetChat(ctx context.Context) ([]*ImChat, error) {
 		return nil, err
 	}
 	SortChatList(chats)
+	logger.Infof("MultiGetChat chats: %v", chats)
 	return chats, nil
+}
+
+func InsertChat(ctx context.Context, chat *ImChat) error {
+	if chat == nil {
+		return nil
+	}
+	if err := DB.WithContext(ctx).Model(chat).Create(chat).Error; err != nil {
+		return err
+	}
+	return nil
 }

@@ -22,17 +22,15 @@ import (
 var _ tea.Model = &chatModel{}
 
 type chatModel struct {
+	cache    *service.MsgCache
 	imCli    *transport.ImClient
-	chat     *sqllite.ImChat
 	viewport viewport.Model
 	textarea textarea.Model
-	messages []*sqllite.ChatMessage
-	chatList chatListModel
 	width    int
 	height   int
 }
 
-func initChatModel(chat *sqllite.ImChat, chatList chatListModel, imCli *transport.ImClient) *chatModel {
+func initChatModel(chat *sqllite.ImChat, imCli *transport.ImClient) *chatModel {
 	ta := textarea.New()
 	ta.Placeholder = "输入消息..."
 	ta.Focus()
@@ -43,19 +41,12 @@ func initChatModel(chat *sqllite.ImChat, chatList chatListModel, imCli *transpor
 	vp := viewport.New(50, 10)
 	vp.Style = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(borderColor)
 
-	// 获取最新离线消息
-	messages, err := service.GetLatestOfflineMessages(context.Background(), chat.ChatId, chat.ChatType)
-	if err != nil {
-		logger.Errorf("GetLatestOfflineMessages error %v", err)
-		messages = make([]*sqllite.ChatMessage, 0)
-	}
+	cache := service.NewMsgCache(chat)
 	return &chatModel{
+		cache:    cache,
 		imCli:    imCli,
-		chat:     chat,
 		viewport: vp,
 		textarea: ta,
-		messages: messages,
-		chatList: chatList,
 	}
 }
 
@@ -69,14 +60,20 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEsc:
-			return m, fetchBackToListMsg()
+			cmds = append(cmds, FetchBackToListMsg())
+			cmds = append(cmds, FetchUpdatedChatListCmd())
+			return m, tea.Batch(cmds...)
 		case tea.KeyEnter:
 			if m.textarea.Focused() {
 				m.sendMessage()
 				m.textarea.Reset()
 				cmds = append(cmds, viewport.Sync(m.viewport))
 			}
-			cmds = append(cmds, fetchUpdatedChatListCmd())
+			cmds = append(cmds, FetchUpdatedChatListCmd())
+		}
+	case updateMessage:
+		if m.cache.GetChat().ChatId == msg.chatId {
+			m.updateMessage()
 		}
 	}
 	// 更新子组件
@@ -95,8 +92,9 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m chatModel) View() string {
 	var chatName string
-	if m.chat.ChatType == 1 {
-		if user, err := sqllite.GetUserById(context.Background(), m.chat.ChatId); err == nil {
+	chat := m.cache.GetChat()
+	if chat.ChatType == 1 {
+		if user, err := sqllite.GetUserById(context.Background(), chat.ChatId); err == nil {
 			chatName = user.UserName
 		}
 	}
@@ -132,7 +130,8 @@ func (m chatModel) sendMessage() {
 	if value == "" {
 		return
 	}
-	request := c2csend.NewRequest(conf.UserId, m.chat.ChatId, value, 0, 0, 0)
+	chat := m.cache.GetChat()
+	request := c2csend.NewRequest(conf.UserId, chat.ChatId, value, 0, 0, 0)
 	response, err := m.imCli.WriteMessage(context.Background(), request)
 	if err != nil {
 		logger.Errorf("消息发送失败, error: %v", err)
@@ -151,7 +150,7 @@ func (m *chatModel) updateSize(width, height int) {
 }
 
 func (m chatModel) saveC2CMessage(request *c2csend.Request, response protocol.Response) {
-	chat := m.chat
+	chat := m.cache.GetChat()
 	message := sqllite.NewMessage(1, chat.ChatId, response.MsgId(), conf.UserId, chat.ChatId,
 		0, 0, 0, request.Content, request.ContentType, request.CmdId(),
 		request.SendTimestamp, 0, response.ServerSeq())
@@ -164,27 +163,17 @@ func (m chatModel) saveC2CMessage(request *c2csend.Request, response protocol.Re
 }
 
 func (m *chatModel) updateMessage() {
-	chat := m.chat
-	messages, err := service.GetLatestOfflineMessages(context.Background(), chat.ChatId, chat.ChatType)
-	if err != nil {
-		return
-	}
-	m.messages = messages
+	m.cache.UpdateMessage()
 }
 
-func (m *chatModel) viewMessage() string {
-	if len(m.messages) == 0 {
-		return lipgloss.Place(m.viewport.Width, m.viewport.Height, lipgloss.Center, lipgloss.Center,
-			"暂无消息，开始对话吧！")
-	}
-	chat := m.chat
-	fetchMessagees, err := service.GetLatestOfflineMessages(context.Background(), chat.ChatId, chat.ChatType)
-	if err != nil {
+func (m chatModel) viewMessage() string {
+	chatMessages := m.cache.GetMessages()
+	if len(chatMessages) == 0 {
 		return lipgloss.Place(m.viewport.Width, m.viewport.Height, lipgloss.Center, lipgloss.Center,
 			"暂无消息，开始对话吧！")
 	}
 	var messages strings.Builder
-	for _, msg := range fetchMessagees {
+	for _, msg := range chatMessages {
 		timeStr := pkg.FormatTime(msg.SendTime)
 		if msg.MsgFrom == conf.UserId {
 			// 自己发送的消息，靠右显示

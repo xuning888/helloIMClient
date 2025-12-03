@@ -3,11 +3,13 @@ package app
 import (
 	"context"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/xuning888/helloIMClient/protocol"
 	"github.com/xuning888/helloIMClient/transport"
 )
 
 type ImContext struct {
+	program  *tea.Program
 	CmdId    int32               // 指令号
 	imCli    *transport.ImClient // IM客户端
 	response protocol.Response   // 接收到的消息
@@ -28,4 +30,12 @@ func (c *ImContext) reset() {
 	c.CmdId = 0
 	c.imCli = nil
 	c.response = nil
+	c.program = nil
+}
+
+func (c *ImContext) SendTuiCmd(cmds ...tea.Cmd) {
+	for _, cmd := range cmds {
+		msg := cmd()
+		c.program.Send(msg)
+	}
 }

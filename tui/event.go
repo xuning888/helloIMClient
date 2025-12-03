@@ -14,7 +14,7 @@ type chatListUpdatedMsg struct {
 	err          error
 }
 
-func fetchUpdatedChatListCmd() tea.Cmd {
+func FetchUpdatedChatListCmd() tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 		chats, err := service.GetAllChat(ctx)
@@ -40,8 +40,21 @@ func fetchChatModel(chat *sqllite.ImChat) tea.Cmd {
 
 type backToListMsg struct{}
 
-func fetchBackToListMsg() tea.Cmd {
+func FetchBackToListMsg() tea.Cmd {
 	return func() tea.Msg {
 		return backToListMsg{}
+	}
+}
+
+type updateMessage struct {
+	chatId int64
+}
+
+// FetchUpdateMessage 更新消息
+func FetchUpdateMessage(chatId int64) tea.Cmd {
+	return func() tea.Msg {
+		return updateMessage{
+			chatId: chatId,
+		}
 	}
 }

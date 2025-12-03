@@ -28,8 +28,9 @@ func (i *ImApp) Start() error {
 		return err
 	}
 	// 拉取用户信息
-	p := tea.NewProgram(tui.InitMainModel(i.imCli), tea.WithAltScreen())
-	if _, err := p.Run(); err != nil {
+	program := tea.NewProgram(tui.InitMainModel(i.imCli), tea.WithAltScreen())
+	i.program = program
+	if _, err := program.Run(); err != nil {
 		return err
 	}
 	i.imCli.Close()

@@ -4,6 +4,7 @@ import (
 	"log"
 	"sync"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/xuning888/helloIMClient/pkg/logger"
 	"github.com/xuning888/helloIMClient/transport"
 )
@@ -19,6 +20,7 @@ type Handler func(ctx *ImContext) error
 type router struct {
 	imCli    *transport.ImClient
 	handlers map[int32]Handler
+	program  *tea.Program
 }
 
 func (h *router) route(ctx *ImContext) error {
@@ -35,6 +37,7 @@ func (h *router) dispatch(result *transport.Result) {
 	context.imCli = h.imCli                  // 设置imCli
 	context.CmdId = result.GetResp().CmdId() // 设置指令号
 	context.response = result.GetResp()      // 设置下行消息
+	context.program = h.program
 	defer func() {
 		context.reset()
 		contextPool.Put(context)

@@ -172,7 +172,6 @@ func initImCli(dispatch Dispatch, options *option.Options) (*ImClient, error) {
 		Info:     &baseInfo{},
 		dispatch: dispatch,
 	}
-	imCli.serverUrl = options.ServerUrl
 	if err := imCli.fetchIpList(); err != nil {
 		return nil, err
 	}
@@ -184,6 +183,6 @@ func initImCli(dispatch Dispatch, options *option.Options) (*ImClient, error) {
 	}
 	imCli.cli = cli
 	// 构造发送器
-	imCli.sender = newSender(transport, options.LingerMs, options.MaxAttempts, options.InitSeq)
+	imCli.sender = newSender(transport, options.LingerMs, options.MaxAttempts)
 	return imCli, nil
 }

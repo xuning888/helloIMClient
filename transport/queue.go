@@ -3,19 +3,10 @@ package transport
 import (
 	"context"
 	"sync"
-	"sync/atomic"
 
 	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
 	"github.com/xuning888/helloIMClient/protocol"
 )
-
-type seqAdder struct {
-	value atomic.Int32
-}
-
-func (a *seqAdder) seq() int32 {
-	return a.value.Add(1)
-}
 
 type syncItem struct {
 	mux      sync.Mutex
@@ -71,7 +62,6 @@ type syncQueue struct {
 	mutex  *sync.Mutex
 	cond   *sync.Cond
 	closed bool
-	adder  *seqAdder
 }
 
 func (s *syncQueue) put(request *syncItem) bool {
@@ -108,17 +98,12 @@ func (s *syncQueue) Close() {
 	s.closed = true
 }
 
-func newSyncQueue(initialSize int, seq int32) *syncQueue {
+func newSyncQueue(initialSize int) *syncQueue {
 	syncQ := &syncQueue{
 		queue: make([]*syncItem, 0, initialSize),
 		mutex: &sync.Mutex{},
 		cond:  &sync.Cond{},
 	}
 	syncQ.cond.L = syncQ.mutex
-	adder := &seqAdder{}
-	if seq > 0 {
-		adder.value.Store(seq)
-	}
-	syncQ.adder = adder
 	return syncQ
 }

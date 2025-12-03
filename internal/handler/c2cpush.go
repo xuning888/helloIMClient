@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
 	"github.com/xuning888/helloIMClient/pkg/logger"
 	"github.com/xuning888/helloIMClient/protocol/c2cpush"
+	"github.com/xuning888/helloIMClient/tui"
 )
 
 var _ app.Handler = C2cPushHandler
@@ -20,19 +20,29 @@ func C2cPushHandler(ctx *app.ImContext) error {
 	if response, ok = ctx.DownMessage().(*c2cpush.Response); !ok {
 		return nil
 	}
-	fmt.Printf("c2cPushMessage, response: %v\n", response)
-	msgTo, _ := strconv.ParseInt(response.To, 10, 64)
-	msgFrom, _ := strconv.ParseInt(response.From, 10, 64)
+	var msgTo int64
+	var err error
+	if msgTo, err = strconv.ParseInt(response.To, 10, 64); err != nil {
+		return err
+	}
+	var msgFrom int64
+	if msgFrom, err = strconv.ParseInt(response.From, 10, 64); err != nil {
+		return err
+	}
 	serverSeq := response.ServerSeq()
 	message := sqllite.NewMessage(1, msgFrom, response.MsgId(),
 		msgFrom, msgTo,
 		response.FromUserType, response.ToUserType, response.MsgSeq(), response.Content, response.ContentType,
 		response.CmdId(),
 		time.Now().UnixMilli(), 0, serverSeq)
-	context.Background()
-	err := sqllite.SaveOrUpdateMessage(context.Background(), message)
-	if err != nil {
+	if err = sqllite.SaveOrUpdateMessage(context.Background(), message); err != nil {
 		logger.Errorf("C2cPushHandler.SaveOrUpdateMessage error: %v", err)
+		return err
 	}
+	// 更新tui
+	ctx.SendTuiCmd(
+		tui.FetchUpdateMessage(msgFrom), // 发送更新消息的cmd
+		tui.FetchUpdatedChatListCmd(),   // 发送更新会话列表的cmd
+	)
 	return nil
 }

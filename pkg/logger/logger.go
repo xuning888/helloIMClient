@@ -1,10 +1,12 @@
 package logger
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/xuning888/helloIMClient/conf"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -17,7 +19,7 @@ func InitLogger() error {
 	if err != nil {
 		return err
 	}
-	absPath := filepath.Join(homeDir, ".helloIm", "log", "app.log")
+	absPath := filepath.Join(homeDir, ".helloIm", fmt.Sprintf("%d", conf.UserId), "log", "app.log")
 	dir := filepath.Dir(absPath)
 	if err2 := os.MkdirAll(dir, 0755); err2 != nil {
 		return err2

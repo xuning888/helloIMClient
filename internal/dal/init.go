@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/xuning888/helloIMClient/conf"
 	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
 )
 
@@ -13,7 +14,7 @@ func Init() error {
 	if err != nil {
 		return err
 	}
-	absPath := filepath.Join(homeDir, ".helloIm", "data.db")
+	absPath := filepath.Join(homeDir, ".helloIm", fmt.Sprintf("%d", conf.UserId), "data.db")
 	dir := filepath.Dir(absPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("create dir: %w", err)
