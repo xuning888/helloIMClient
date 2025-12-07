@@ -39,6 +39,7 @@ func C2cPushHandler(ctx *app.ImContext) error {
 		logger.Errorf("C2cPushHandler.SaveOrUpdateMessage error: %v", err)
 		return err
 	}
+	// TODO 回复下行消息ACK
 	// 更新tui
 	ctx.SendTuiCmd(
 		tui.FetchUpdateMessage(msgFrom), // 发送更新消息的cmd
