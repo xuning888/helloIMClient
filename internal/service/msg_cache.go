@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"sort"
 	"sync"
 
 	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
@@ -47,6 +48,9 @@ func (m *MsgCache) loadInitialMessages() {
 	if dbMessages, err2 := sqllite.GetRecentMessages(ctx, m.chat.ChatId, maxCachedMessages); err2 != nil {
 		logger.Errorf("GetRecentMessages error: %v", err2)
 	} else {
+		sort.Slice(dbMessages, func(i, j int) bool {
+			return dbMessages[i].ServerSeq < dbMessages[j].ServerSeq
+		})
 		messages = dbMessages
 	}
 	m.message = m.truncateMessages(messages)
