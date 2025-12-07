@@ -59,7 +59,7 @@ func (m chatListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursor < len(m.chats)-1 {
 				m.cursor++
 			}
-		case tea.KeySpace.String(): // 选中会话
+		case tea.KeyEnter.String(): // 选中会话
 			if m.cursor >= 0 && m.cursor < len(m.chats) {
 				chat := m.chats[m.cursor] // 获取会话
 				return m, fetchChatModel(chat)
@@ -125,7 +125,7 @@ func (m chatListModel) chatListView() string {
 			lastMsgText = truncateText(lastMsg.MsgContent, 20)
 		}
 
-		timeStr := pkg.FormatTime(chat.UpdateTimestamp)
+		timeStr := pkg.FormatTime(chat.UpdateTimestamp, pkg.DateTime)
 
 		// 会话项内容
 		chatContent := fmt.Sprintf("%s\n%s", name, lastMsgText)

@@ -9,7 +9,6 @@ import (
 
 	"github.com/panjf2000/gnet/v2"
 	"github.com/xuning888/helloIMClient/internal/http"
-	"github.com/xuning888/helloIMClient/option"
 	"github.com/xuning888/helloIMClient/protocol"
 	"github.com/xuning888/helloIMClient/protocol/echo"
 	"github.com/xuning888/helloIMClient/protocol/heartbeat"
@@ -48,21 +47,9 @@ type ImClient struct {
 	dispatch  Dispatch
 }
 
-func NewImClient(dispatch Dispatch, opts ...option.Option) (*ImClient, error) {
-	// 加载配置项
-	options := option.LoadOptions(opts...)
-	// 设置默认的http超时时间
-	if options.HttpTimeout == 0 {
-		options.HttpTimeout = defaultHttpTimeout
-	}
-	if options.MaxAttempts == 0 {
-		options.MaxAttempts = 10
-	}
-	if options.LingerMs == 0 {
-		options.LingerMs = time.Millisecond * 10
-	}
+func NewImClient(dispatch Dispatch) (*ImClient, error) {
 	// 初始化imcli
-	imCli, err := initImCli(dispatch, options)
+	imCli, err := initImCli(dispatch)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +154,7 @@ func (imCli *ImClient) heartBeat() error {
 	return nil
 }
 
-func initImCli(dispatch Dispatch, options *option.Options) (*ImClient, error) {
+func initImCli(dispatch Dispatch) (*ImClient, error) {
 	imCli := &ImClient{
 		Info:     &baseInfo{},
 		dispatch: dispatch,
@@ -183,6 +170,6 @@ func initImCli(dispatch Dispatch, options *option.Options) (*ImClient, error) {
 	}
 	imCli.cli = cli
 	// 构造发送器
-	imCli.sender = newSender(transport, options.LingerMs, options.MaxAttempts)
+	imCli.sender = newSender(transport, 10, 3)
 	return imCli, nil
 }

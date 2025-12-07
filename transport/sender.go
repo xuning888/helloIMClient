@@ -98,7 +98,7 @@ func (s *sender) doWrite(item *syncItem) {
 		if lastErr == nil {
 			break
 		}
-		logger.Infof("doWrite")
+		logger.Infof("doWrite message, error: %v", lastErr)
 	}
 	if lastErr != nil {
 		if item.response == nil {

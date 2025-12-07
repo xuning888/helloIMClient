@@ -174,7 +174,7 @@ func (m chatModel) viewMessage() string {
 	}
 	var messages strings.Builder
 	for _, msg := range chatMessages {
-		timeStr := pkg.FormatTime(msg.SendTime)
+		timeStr := pkg.FormatTime(msg.SendTime, pkg.DateTime)
 		if msg.MsgFrom == conf.UserId {
 			// 自己发送的消息，靠右显示
 			content := lipgloss.JoinVertical(lipgloss.Left,

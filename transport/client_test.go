@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/xuning888/helloIMClient/internal/http"
 	pb "github.com/xuning888/helloIMClient/internal/proto"
-	"github.com/xuning888/helloIMClient/option"
 	"github.com/xuning888/helloIMClient/pkg/logger"
 	"github.com/xuning888/helloIMClient/protocol/c2csend"
 )
@@ -56,7 +55,7 @@ func TestImClient_WriteMessage(t *testing.T) {
 func writeMessage(i int, t *testing.T) {
 	logger.InitLogger()
 	http.Init("http://127.0.0.1:8087", time.Second*5)
-	client, err := NewImClient(testDispatch, option.WithServerUrl("http://127.0.0.1:8087"))
+	client, err := NewImClient(testDispatch)
 	if err != nil {
 		t.Fatal(err)
 	}
