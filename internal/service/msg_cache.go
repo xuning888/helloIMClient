@@ -32,7 +32,6 @@ func (m *MsgCache) loadInitialMessages() {
 	messages, err := GetLatestOfflineMessages(ctx, m.chat.ChatId, m.chat.ChatType)
 	if err != nil {
 		logger.Errorf("GetLatestOfflineMessages error: %v", err)
-		return
 	}
 
 	m.mux.Lock()
@@ -43,6 +42,12 @@ func (m *MsgCache) loadInitialMessages() {
 		if err = sqllite.SaveOrUpdateMessage(ctx, msg); err != nil {
 			logger.Errorf("SaveOrUpdateMessage error: %v", err)
 		}
+	}
+
+	if dbMessages, err2 := sqllite.GetRecentMessages(ctx, m.chat.ChatId, maxCachedMessages); err2 != nil {
+		logger.Errorf("GetRecentMessages error: %v", err2)
+	} else {
+		messages = dbMessages
 	}
 	m.message = m.truncateMessages(messages)
 }

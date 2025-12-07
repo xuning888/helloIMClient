@@ -71,14 +71,14 @@ func (m commonModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.focus = "chat"
 			m.search = nil
 		}
+		logger.Infof("触发搜索结果事件, user: %v", user)
+		cmds = append(cmds, FetchUpdatedChatListCmd())
 		m.updateLayout()
 	}
-	if m.focus != "search" {
-		updatedList, listCmd := m.chatList.Update(msg)
-		m.chatList = updatedList.(chatListModel)
-		if listCmd != nil {
-			cmds = append(cmds, listCmd)
-		}
+	updatedList, listCmd := m.chatList.Update(msg)
+	m.chatList = updatedList.(chatListModel)
+	if listCmd != nil {
+		cmds = append(cmds, listCmd)
 	}
 	if m.chat != nil {
 		updatedChat, chatCmd := m.chat.Update(msg)

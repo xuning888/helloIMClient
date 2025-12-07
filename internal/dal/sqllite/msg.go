@@ -81,18 +81,16 @@ func GetMessage(ctx context.Context, chatId, msgId int64) (*ChatMessage, error) 
 	return msg, nil
 }
 
-func GetRecentMessages(ctx context.Context, chatId int64, limit int) ([]*ChatMessage, error) {
-	var msgs []*ChatMessage
-	err := DB.WithContext(ctx).
-		Model(&ChatMessage{}).
+func GetLastMessage(ctx context.Context, chatId int64) (*ChatMessage, error) {
+	msg := &ChatMessage{}
+	err := DB.WithContext(ctx).Model(msg).
 		Where("chat_id = ?", chatId).
-		Order("msg_id desc").
-		Limit(limit).
-		Find(&msgs).Error
+		Order("server_seq desc").Limit(1).
+		Find(msg).Error
 	if err != nil {
 		return nil, err
 	}
-	return msgs, nil
+	return msg, nil
 }
 
 // GetMessagesWithOffset 分页获取消息
@@ -102,6 +100,20 @@ func GetMessagesWithOffset(ctx context.Context, chatId, offset int64, limit int)
 		Model(&ChatMessage{}).
 		Where("chat_id = ? and msg_id > ?", chatId, offset).
 		Order("msg_id desc").
+		Limit(limit).
+		Find(&msgs).Error
+	if err != nil {
+		return nil, err
+	}
+	return msgs, nil
+}
+
+func GetRecentMessages(ctx context.Context, chatId int64, limit int) ([]*ChatMessage, error) {
+	var msgs []*ChatMessage
+	err := DB.WithContext(ctx).
+		Model(&ChatMessage{}).
+		Where("chat_id = ?", chatId).
+		Order("server_seq desc").
 		Limit(limit).
 		Find(&msgs).Error
 	if err != nil {

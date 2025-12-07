@@ -3,12 +3,12 @@ package transport
 import (
 	"context"
 	"errors"
-	"log"
 	"sync"
 	"time"
 
 	"github.com/panjf2000/gnet/v2"
 	"github.com/xuning888/helloIMClient/internal/http"
+	"github.com/xuning888/helloIMClient/pkg/logger"
 	"github.com/xuning888/helloIMClient/protocol"
 	"github.com/xuning888/helloIMClient/protocol/echo"
 	"github.com/xuning888/helloIMClient/protocol/heartbeat"
@@ -74,6 +74,10 @@ func (imCli *ImClient) WriteMessage(ctx context.Context, request protocol.Reques
 		return nil, err
 	}
 	return message, nil
+}
+
+func (imCli *ImClient) WriteMessageWithSeq(ctx context.Context, seq int32, request protocol.Request) error {
+	return imCli.sender.writeMessageWihSeq(ctx, seq, request)
 }
 
 func (imCli *ImClient) Close() {
@@ -148,7 +152,7 @@ func (imCli *ImClient) fetchIpList() error {
 func (imCli *ImClient) heartBeat() error {
 	request := heartbeat.NewRequest()
 	if _, err := imCli.WriteMessage(context.Background(), request); err != nil {
-		log.Printf("heartBeat error: %v\n", err)
+		logger.Errorf("heartBeat error: %v\n", err)
 		return err
 	}
 	return nil

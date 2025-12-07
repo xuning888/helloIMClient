@@ -12,7 +12,6 @@ import (
 )
 
 func GetAllChat(ctx context.Context) ([]*sqllite.ImChat, error) {
-	updateChat()
 	chats, err := sqllite.MultiGetChat(ctx)
 	if err != nil {
 		logger.Errorf("MultiGetChat error: %v", err)
@@ -36,7 +35,7 @@ func GetOrCreateChat(ctx context.Context, chatId int64, chatType int32) (*sqllit
 	}
 }
 
-func updateChat() {
+func UpdateChatsFromRemote() {
 	chats, err := http.GetAllChat(conf.UserId)
 	if err != nil {
 		logger.Errorf("GetAllChat error: %v", err)
@@ -45,4 +44,25 @@ func updateChat() {
 	if err2 := sqllite.BatchUpdate(context.Background(), chats); err2 != nil {
 		logger.Errorf("updateChat error: %v", err)
 	}
+}
+
+func UpdateChatVersion(chatId int64) {
+	ctx := context.Background()
+	chat, err := sqllite.SelectChat(ctx, conf.UserId, chatId)
+	if err != nil {
+		logger.Errorf("UpdateChatVersion.SelectChat error: %v", err)
+		return
+	}
+	lastMsg, err := LastMessage(ctx, chatId, chat.ChatType)
+	if err != nil {
+		logger.Infof("UpdateChatVersion.LastMessage error: %v", err)
+		return
+	}
+	chat.UpdateTimestamp = lastMsg.SendTime
+	chat.LastReadMsgId = lastMsg.MsgID
+	err = sqllite.BatchUpdate(ctx, append([]*sqllite.ImChat{}, chat))
+	if err != nil {
+		logger.Errorf("UpdateChatVersion.BatchUpdate error: %v", err)
+	}
+	logger.Infof("UpdateChatVersion success: %v", chat)
 }

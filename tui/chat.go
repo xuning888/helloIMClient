@@ -60,8 +60,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEsc:
-			cmds = append(cmds, FetchBackToListMsg())
-			cmds = append(cmds, FetchUpdatedChatListCmd())
+			cmds = append(cmds, FetchBackToListMsg(), FetchUpdatedChatListCmd())
 			return m, tea.Batch(cmds...)
 		case tea.KeyEnter:
 			if m.textarea.Focused() {
@@ -69,7 +68,8 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.textarea.Reset()
 				cmds = append(cmds, viewport.Sync(m.viewport))
 			}
-			cmds = append(cmds, FetchUpdatedChatListCmd())
+			chatId := m.cache.GetChat().ChatId
+			cmds = append(cmds, FetchUpdatedChatListCmd(), FetchUpdateMessage(chatId))
 		}
 	case updateMessage:
 		if m.cache.GetChat().ChatId == msg.chatId {
@@ -94,7 +94,7 @@ func (m chatModel) View() string {
 	var chatName string
 	chat := m.cache.GetChat()
 	if chat.ChatType == 1 {
-		if user, err := sqllite.GetUserById(context.Background(), chat.ChatId); err == nil {
+		if user, err := service.GetUserById(context.Background(), chat.ChatId); err == nil {
 			chatName = user.UserName
 		}
 	}
@@ -158,8 +158,8 @@ func (m chatModel) saveC2CMessage(request *c2csend.Request, response protocol.Re
 		logger.Errorf("saveC2CMessage error: %v", err)
 		return
 	}
-	pm := &m
-	pm.updateMessage()
+	// 更新会话版本号
+	service.UpdateChatVersion(chat.ChatId)
 }
 
 func (m *chatModel) updateMessage() {
@@ -187,7 +187,7 @@ func (m chatModel) viewMessage() string {
 		} else {
 			// 对方发送的消息，靠左显示
 			var name string
-			if user, err := sqllite.GetUserById(context.Background(), msg.MsgFrom); err == nil {
+			if user, err := service.GetUserById(context.Background(), msg.MsgFrom); err == nil {
 				name = user.UserName
 			}
 			content := lipgloss.JoinVertical(lipgloss.Left,

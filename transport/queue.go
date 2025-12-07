@@ -76,6 +76,18 @@ func (s *syncQueue) put(request *syncItem) bool {
 	return true
 }
 
+func (s *syncQueue) putWithSeq(seq int32, request *syncItem) bool {
+	s.cond.L.Lock()
+	defer s.cond.L.Unlock()
+	defer s.cond.Broadcast()
+	if s.closed {
+		return false
+	}
+	request.seq = seq
+	s.queue = append(s.queue, request)
+	return true
+}
+
 func (s *syncQueue) get() *syncItem {
 	s.cond.L.Lock()
 	defer s.cond.L.Unlock()

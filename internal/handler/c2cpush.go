@@ -29,6 +29,12 @@ func C2cPushHandler(ctx *app.ImContext) error {
 	if msgFrom, err = strconv.ParseInt(response.From, 10, 64); err != nil {
 		return err
 	}
+	logger.Infof("C2cPushHandler 接收到单聊下行消息, msgId: %v", response.MsgId())
+	// 收到消息立刻回复ACK
+	request := c2cpush.NewRequest(msgFrom, msgTo, response.MsgId())
+	if err2 := ctx.AsyncSendMessageWithSeq(context.Background(), response.MsgSeq(), request); err2 != nil {
+		logger.Errorf("C2cPushHandler sendAck error: %v", err2)
+	}
 	serverSeq := response.ServerSeq()
 	message := sqllite.NewMessage(1, msgFrom, response.MsgId(),
 		msgFrom, msgTo,
@@ -39,7 +45,6 @@ func C2cPushHandler(ctx *app.ImContext) error {
 		logger.Errorf("C2cPushHandler.SaveOrUpdateMessage error: %v", err)
 		return err
 	}
-	// TODO 回复下行消息ACK
 	// 更新tui
 	ctx.SendTuiCmd(
 		tui.FetchUpdateMessage(msgFrom), // 发送更新消息的cmd

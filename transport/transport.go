@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/panjf2000/gnet/v2"
+	"github.com/xuning888/helloIMClient/internal/service"
 	"github.com/xuning888/helloIMClient/pkg/logger"
+	"github.com/xuning888/helloIMClient/protocol"
 )
 
 type HeartBeat func() error
@@ -30,6 +32,7 @@ func (t *Transport) roundTrip(ctx context.Context, item *syncItem) error {
 		return ErrClosed
 	}
 	// 获取连接
+	// TODO 重连逻辑还在有问题
 	conn, err := t.connManager.Dial()
 	if err != nil {
 		return err
@@ -53,6 +56,23 @@ func (t *Transport) roundTrip(ctx context.Context, item *syncItem) error {
 	return nil
 }
 
+func (t *Transport) roundTripWithSeq(ctx context.Context, seq int32, request protocol.Request) error {
+	if atomic.LoadInt32(&t.closed) == 1 {
+		return ErrClosed
+	}
+	// 获取连接
+	conn, err := t.connManager.Dial()
+	if err != nil {
+		return err
+	}
+	if !conn.Authed() {
+		if err2 := t.connManager.auth(ctx, conn); err2 != nil {
+			return err2
+		}
+	}
+	return conn.asyncWriteWithSeq(seq, request)
+}
+
 func (t *Transport) OnClose(conn gnet.Conn, err error) gnet.Action {
 	t.connManager.delete(conn)
 	return gnet.None
@@ -65,6 +85,10 @@ func (t *Transport) OnTick() (delay time.Duration, action gnet.Action) {
 	if err != nil {
 		logger.Errorf("heartBeat error: %v", err)
 	}
+	// 更新会话列表
+	go service.UpdateChatsFromRemote()
+	// 拉用户信息
+	go service.UpdateUsers()
 	return
 }
 

@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"encoding/binary"
+	"fmt"
 )
 
 // DefaultHeaderSize 固定消息头的长度
@@ -21,6 +22,11 @@ type MsgHeader struct {
 type Frame struct {
 	Header *MsgHeader
 	Body   []byte
+}
+
+func (f *Frame) Key() string {
+	h := f.Header
+	return fmt.Sprintf("%d_%d", h.Seq, h.CmdId)
 }
 
 // EncodeHeader 编码固定消息头

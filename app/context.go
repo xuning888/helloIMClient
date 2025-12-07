@@ -25,6 +25,11 @@ func (c *ImContext) SendMessage(ctx context.Context, request protocol.Request) (
 	return c.imCli.WriteMessage(ctx, request)
 }
 
+// AsyncSendMessageWithSeq 异步发送, 不关注ack
+func (c *ImContext) AsyncSendMessageWithSeq(ctx context.Context, seq int32, request protocol.Request) error {
+	return c.imCli.WriteMessageWithSeq(ctx, seq, request)
+}
+
 // reset 重制context
 func (c *ImContext) reset() {
 	c.CmdId = 0

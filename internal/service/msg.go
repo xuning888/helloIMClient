@@ -9,17 +9,17 @@ import (
 	"github.com/xuning888/helloIMClient/pkg/logger"
 )
 
-func LastMessage(ctx context.Context, chatId, msgId int64, chatType int32) (*sqllite.ChatMessage, error) {
-	lastMsg, err := sqllite.GetMessage(ctx, chatId, msgId)
+func LastMessage(ctx context.Context, chatId int64, chatType int32) (*sqllite.ChatMessage, error) {
+	lastMsg, err := sqllite.GetLastMessage(ctx, chatId)
 	if err == nil {
-		logger.Infof("LastMessage from DB chatId: %v, msgId: %v, chatType: %v", chatId, msgId, chatType)
+		logger.Infof("LastMessage from DB chatId: %v, chatType: %v", chatId, chatType)
 		return lastMsg, nil
 	}
 	logger.Warnf("LastMessage, getLasetMessage from DB error: %v", err)
 	// 查询服务器
 	if lastMsg, err2 := http.LastMessage(conf.UserId, chatId, chatType); err2 != nil {
 		// 异步更新会话
-		go updateChat()
+		//go updateChat()
 		logger.Errorf("http.LastMessage error: %v", err)
 		return nil, err2
 	} else {
@@ -38,7 +38,7 @@ func BatchLastMessage(ctx context.Context, chats []*sqllite.ImChat) map[string]*
 	result := make(map[string]*sqllite.ChatMessage)
 	for _, chat := range chats {
 		// 拉取最后一条消息
-		lastMsg, err := LastMessage(ctx, chat.ChatId, chat.LastReadMsgId, chat.ChatType)
+		lastMsg, err := LastMessage(ctx, chat.ChatId, chat.ChatType)
 		if err != nil {
 			logger.Errorf("failed to get last message for chatId=%d: %v", chat.ChatId, err)
 		}

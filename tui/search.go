@@ -55,7 +55,7 @@ func (m searchModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					user = m.searchResults[m.cursor]
 				}
 			}
-			cmds = append(cmds, fetchSearchSelectedUserMsg(user), FetchUpdatedChatListCmd())
+			cmds = append(cmds, fetchSearchSelectedUserMsg(user))
 			return m, tea.Batch(cmds...)
 		case tea.KeyUp.String():
 			if m.cursor > 0 {

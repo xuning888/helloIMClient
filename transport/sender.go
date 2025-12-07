@@ -39,6 +39,10 @@ func (s *sender) writeMessage(ctx context.Context, request protocol.Request) (pr
 	return item.response, item.err
 }
 
+func (s *sender) writeMessageWihSeq(ctx context.Context, seq int32, request protocol.Request) error {
+	return s.transport.roundTripWithSeq(ctx, seq, request)
+}
+
 func (s *sender) writeRequest() {
 	for {
 		item := s.queue.get()

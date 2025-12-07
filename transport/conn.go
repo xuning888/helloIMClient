@@ -47,10 +47,23 @@ func (c *Conn) asyncWrite0(item *syncItem) error {
 	if err != nil {
 		return err
 	}
-	_, _ = c.requests.LoadOrStore(seq, item)
+	key := fmt.Sprintf("%d_%d", seq, request.CmdId())
+	_, _ = c.requests.LoadOrStore(key, item)
 	err = c.conn.AsyncWrite(bytes, c.writeCallback)
 	if err != nil {
 		// 加入写出队列失败
+		return err
+	}
+	return nil
+}
+
+func (c *Conn) asyncWriteWithSeq(seq int32, request protocol.Request) error {
+	bytes, err := protocol.EncodeMessageToBytes(seq, request)
+	if err != nil {
+		return err
+	}
+	err = c.conn.AsyncWrite(bytes, c.writeCallback)
+	if err != nil {
 		return err
 	}
 	return nil
@@ -112,9 +125,9 @@ func (c *Conn) doDispatch() {
 }
 
 func (c *Conn) process(frame *protocol.Frame) {
-	seq := frame.Header.Seq
+	key := frame.Key()
 	response, err := protocol.DecodeResp(frame)
-	if value, loaded := c.requests.LoadAndDelete(seq); loaded {
+	if value, loaded := c.requests.LoadAndDelete(key); loaded {
 		item := value.(*syncItem)
 		item.err = err
 		item.complete(response)

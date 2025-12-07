@@ -88,7 +88,7 @@ func (m chatListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.chats = msg.chats
 		m.lastMessages = msg.lastMessages
 		m.cursor = newSelected
-		logger.Info("更新会话列表")
+		logger.Infof("触发更新会话列表事件")
 	}
 	return m, nil
 }
@@ -103,11 +103,12 @@ func (m chatListModel) chatListView() string {
 	// 列表标题
 	title := lipgloss.NewStyle().
 		Width(m.width).
-		Height(3).
+		Height(4).
 		Background(headerColor).
 		Foreground(textColor).
 		Bold(true).
 		Align(lipgloss.Center).
+		PaddingTop(1).
 		Render(" 会话列表 ")
 	content.WriteString(title + "\n")
 
@@ -115,7 +116,7 @@ func (m chatListModel) chatListView() string {
 	for i, chat := range m.chats {
 		var name string
 		if chat.ChatType == 1 {
-			if user, err := sqllite.GetUserById(context.Background(), chat.ChatId); err == nil {
+			if user, err := service.GetUserById(context.Background(), chat.ChatId); err == nil {
 				name = user.UserName
 			}
 		}
