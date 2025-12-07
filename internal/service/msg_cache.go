@@ -67,10 +67,12 @@ func (m *MsgCache) UpdateMessage() {
 	if len(m.message) == 0 {
 		// 如果没有缓存消息，加载最新消息
 		newMessages, err = GetLatestOfflineMessages(ctx, m.chat.ChatId, m.chat.ChatType)
+		logger.Infof("UpdateMessage from remote")
 	} else {
 		// 基于最后一条消息获取更新
 		lastMsg := m.message[len(m.message)-1]
 		newMessages, err = sqllite.GetMessagesWithOffset(ctx, m.chat.ChatId, lastMsg.MsgID, maxCachedMessages)
+		logger.Infof("UpdateMessage from local")
 	}
 
 	if err != nil {
