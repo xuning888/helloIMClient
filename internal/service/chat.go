@@ -58,11 +58,13 @@ func UpdateChatVersion(chatId int64) {
 		logger.Infof("UpdateChatVersion.LastMessage error: %v", err)
 		return
 	}
-	chat.UpdateTimestamp = lastMsg.SendTime
-	chat.LastReadMsgId = lastMsg.MsgID
-	err = sqllite.BatchUpdate(ctx, append([]*sqllite.ImChat{}, chat))
-	if err != nil {
-		logger.Errorf("UpdateChatVersion.BatchUpdate error: %v", err)
+	if lastMsg.SendTime > chat.UpdateTimestamp {
+		chat.UpdateTimestamp = lastMsg.SendTime
+		chat.LastReadMsgId = lastMsg.MsgID
+		err = sqllite.BatchUpdate(ctx, append([]*sqllite.ImChat{}, chat))
+		if err != nil {
+			logger.Errorf("UpdateChatVersion.BatchUpdate error: %v", err)
+		}
+		logger.Infof("UpdateChatVersion success: %v", chat)
 	}
-	logger.Infof("UpdateChatVersion success: %v", chat)
 }
