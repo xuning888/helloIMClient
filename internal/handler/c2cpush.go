@@ -7,7 +7,6 @@ import (
 
 	"github.com/xuning888/helloIMClient/app"
 	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
-	"github.com/xuning888/helloIMClient/internal/service"
 	"github.com/xuning888/helloIMClient/pkg/logger"
 	"github.com/xuning888/helloIMClient/protocol/c2cpush"
 	"github.com/xuning888/helloIMClient/tui"
@@ -46,7 +45,7 @@ func C2cPushHandler(ctx *app.ImContext) error {
 		logger.Errorf("C2cPushHandler.SaveOrUpdateMessage error: %v", err)
 		return err
 	}
-	service.UpdateChatVersion(msgFrom)
+	//service.UpdateChatVersion(msgFrom)
 	// 更新tui
 	ctx.SendTuiCmd(
 		tui.FetchUpdateMessage(msgFrom), // 发送更新消息的cmd
