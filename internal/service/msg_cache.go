@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"sort"
 	"sync"
 
 	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
@@ -33,6 +32,7 @@ func (m *MsgCache) loadInitialMessages() {
 	messages, err := GetLatestOfflineMessages(ctx, m.chat.ChatId, m.chat.ChatType)
 	if err != nil {
 		logger.Errorf("GetLatestOfflineMessages error: %v", err)
+		return
 	}
 
 	m.mux.Lock()
@@ -43,15 +43,6 @@ func (m *MsgCache) loadInitialMessages() {
 		if err = sqllite.SaveOrUpdateMessage(ctx, msg); err != nil {
 			logger.Errorf("SaveOrUpdateMessage error: %v", err)
 		}
-	}
-
-	if dbMessages, err2 := sqllite.GetRecentMessages(ctx, m.chat.ChatId, maxCachedMessages); err2 != nil {
-		logger.Errorf("GetRecentMessages error: %v", err2)
-	} else {
-		sort.Slice(dbMessages, func(i, j int) bool {
-			return dbMessages[i].ServerSeq < dbMessages[j].ServerSeq
-		})
-		messages = dbMessages
 	}
 	m.message = m.truncateMessages(messages)
 }
@@ -68,6 +59,11 @@ func (m *MsgCache) UpdateMessage() {
 		// 如果没有缓存消息，加载最新消息
 		newMessages, err = GetLatestOfflineMessages(ctx, m.chat.ChatId, m.chat.ChatType)
 		logger.Infof("UpdateMessage from remote")
+		for _, msg := range newMessages {
+			if err = sqllite.SaveOrUpdateMessage(ctx, msg); err != nil {
+				logger.Errorf("SaveOrUpdateMessage error: %v", err)
+			}
+		}
 	} else {
 		// 基于最后一条消息获取更新
 		lastMsg := m.message[len(m.message)-1]
@@ -78,12 +74,6 @@ func (m *MsgCache) UpdateMessage() {
 	if err != nil {
 		logger.Errorf("Get messages error: %v", err)
 		return
-	}
-
-	for _, msg := range newMessages {
-		if err = sqllite.SaveOrUpdateMessage(ctx, msg); err != nil {
-			logger.Errorf("SaveOrUpdateMessage error: %v", err)
-		}
 	}
 	allMessages := append(m.message, newMessages...)
 	m.message = m.truncateMessages(allMessages)
