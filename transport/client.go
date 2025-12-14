@@ -151,7 +151,7 @@ func (imCli *ImClient) fetchIpList() error {
 
 func (imCli *ImClient) heartBeat() error {
 	request := heartbeat.NewRequest()
-	if _, err := imCli.WriteMessage(context.Background(), request); err != nil {
+	if err := imCli.WriteMessageWithSeq(context.Background(), 0, request); err != nil {
 		logger.Errorf("heartBeat error: %v\n", err)
 		return err
 	}
