@@ -68,15 +68,16 @@ func RequestDecode(frame *protocol.Frame) (protocol.Request, error) {
 
 func ResponseDecode(frame *protocol.Frame) (protocol.Response, error) {
 	body := frame.Body
-	c2cPushRequest := helloim_proto.C2CPushRequest{}
-	err := proto.Unmarshal(body, &c2cPushRequest)
+	c2cPushRequest := &helloim_proto.C2CPushRequest{}
+	err := proto.Unmarshal(body, c2cPushRequest)
 	if err != nil {
 		return nil, err
 	}
-	return &Response{
-		C2CPushRequest: &c2cPushRequest,
+	response := &Response{
+		C2CPushRequest: c2cPushRequest,
 		msgSeq:         frame.Header.Seq,
-	}, nil
+	}
+	return response, nil
 }
 
 func init() {
