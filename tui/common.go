@@ -49,8 +49,16 @@ func (m commonModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case selectChatMsg:
 		// 选择聊天
-		m.chat = initChatModel(msg.chat, m.imCli)
-		m.focus = "chat"
+		if m.chat == nil {
+			m.chat = initChatModel(msg.chat, m.imCli)
+			m.focus = "chat"
+			logger.Infof("首次进入会话")
+		} else {
+			if m.chat.cache.GetChat().ChatId != msg.chat.ChatId {
+				m.chat = initChatModel(msg.chat, m.imCli)
+				m.focus = "chat"
+			}
+		}
 		m.updateLayout()
 	case backToListMsg, exitSearch: // 返回聊天列表
 		m.focus = "list"
