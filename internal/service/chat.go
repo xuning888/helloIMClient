@@ -37,6 +37,7 @@ func GetOrCreateChat(ctx context.Context, chatId int64, chatType int32) (*sqllit
 
 func UpdateChatsFromRemote() {
 	chats, err := http.GetAllChat(conf.UserId)
+	logger.Infof("UpdateChatsFromRemote")
 	if err != nil {
 		logger.Errorf("GetAllChat error: %v", err)
 		return
@@ -46,9 +47,9 @@ func UpdateChatsFromRemote() {
 	}
 }
 
-func UpdateChatVersion(chatId int64) {
+func UpdateChatVersion(chatId int64, chatType int32) {
 	ctx := context.Background()
-	chat, err := sqllite.SelectChat(ctx, conf.UserId, chatId)
+	chat, err := GetOrCreateChat(ctx, chatId, chatType)
 	if err != nil {
 		logger.Errorf("UpdateChatVersion.SelectChat error: %v", err)
 		return

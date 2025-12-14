@@ -152,14 +152,14 @@ func (m *chatModel) updateSize(width, height int) {
 func (m chatModel) saveC2CMessage(request *c2csend.Request, response protocol.Response) {
 	chat := m.cache.GetChat()
 	message := sqllite.NewMessage(1, chat.ChatId, response.MsgId(), conf.UserId, chat.ChatId,
-		0, 0, 0, request.Content, request.ContentType, request.CmdId(),
+		0, 0, response.MsgSeq(), request.Content, request.ContentType, request.CmdId(),
 		request.SendTimestamp, 0, response.ServerSeq())
 	if err := sqllite.SaveOrUpdateMessage(context.Background(), message); err != nil {
 		logger.Errorf("saveC2CMessage error: %v", err)
 		return
 	}
 	// 更新会话版本号
-	service.UpdateChatVersion(chat.ChatId)
+	service.UpdateChatVersion(chat.ChatId, chat.ChatType)
 }
 
 func (m *chatModel) updateMessage() {
