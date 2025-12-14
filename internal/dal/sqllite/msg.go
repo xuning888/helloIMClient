@@ -3,6 +3,7 @@ package sqllite
 import (
 	"context"
 
+	"github.com/xuning888/helloIMClient/conf"
 	"gorm.io/gorm/clause"
 )
 
@@ -10,10 +11,10 @@ import (
 type ChatMessage struct {
 	ChatID        int64  `gorm:"primaryKey;default:0;column:chat_id" json:"chatId"`
 	MsgID         int64  `gorm:"primaryKey;default:0;column:msg_id" json:"msgId"`
-	ChatType      int32  `gorm:"default:0;column:chat_type" json:"chatType"`
-	MsgFrom       int64  `gorm:"default:0;column:msg_from" json:"msgFrom"`
+	ChatType      int32  `gorm:"primaryKey;default:0;column:chat_type" json:"chatType"`
+	MsgFrom       int64  `gorm:"default:0;column:msg_from;column:msg_from" json:"msgFrom"`
+	MsgTo         int64  `gorm:"default:0;column:msg_to;column:msg_to" json:"msgTo"`
 	FromUserType  int32  `gorm:"default:0;column:from_user_type" json:"fromUserType"`
-	MsgTo         int64  `gorm:"default:0;column:msg_to" json:"msgTo"`
 	ToUserType    int32  `gorm:"default:0;column:to_user_type" json:"toUserType"`
 	GroupID       int64  `gorm:"default:0;column:group_id" json:"groupId"`
 	MsgSeq        int32  `gorm:"default:0;column:msg_seq" json:"msgSeq"`
@@ -56,10 +57,15 @@ func NewMessage(chatType int32, chatId, msgId int64,
 }
 
 func SaveOrUpdateMessage(ctx context.Context, message *ChatMessage) error {
+	if message.MsgFrom == conf.UserId {
+		message.ChatID = message.MsgTo
+	} else {
+		message.ChatID = message.MsgFrom
+	}
 	err := DB.WithContext(ctx).Clauses(
 		clause.OnConflict{
 			Columns: []clause.Column{
-				{Name: "chat_id"}, {Name: "msg_id"},
+				{Name: "chat_id"}, {Name: "msg_id"}, {Name: "chat_type"},
 			},
 			UpdateAll: true,
 		},
@@ -68,17 +74,6 @@ func SaveOrUpdateMessage(ctx context.Context, message *ChatMessage) error {
 		return err
 	}
 	return nil
-}
-
-func GetMessage(ctx context.Context, chatId, msgId int64) (*ChatMessage, error) {
-	msg := &ChatMessage{}
-	err := DB.WithContext(ctx).Model(msg).
-		Where("chat_id = ? and msg_id = ?", chatId, msgId).
-		Find(msg).Error
-	if err != nil {
-		return nil, err
-	}
-	return msg, nil
 }
 
 func GetLastMessage(ctx context.Context, chatId int64) (*ChatMessage, error) {
@@ -100,20 +95,6 @@ func GetMessagesWithOffset(ctx context.Context, chatId, offset int64, limit int)
 		Model(&ChatMessage{}).
 		Where("chat_id = ? and msg_id > ?", chatId, offset).
 		Order("msg_id desc").
-		Limit(limit).
-		Find(&msgs).Error
-	if err != nil {
-		return nil, err
-	}
-	return msgs, nil
-}
-
-func GetRecentMessages(ctx context.Context, chatId int64, limit int) ([]*ChatMessage, error) {
-	var msgs []*ChatMessage
-	err := DB.WithContext(ctx).
-		Model(&ChatMessage{}).
-		Where("chat_id = ?", chatId).
-		Order("server_seq desc").
 		Limit(limit).
 		Find(&msgs).Error
 	if err != nil {
