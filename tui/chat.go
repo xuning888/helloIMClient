@@ -63,17 +63,21 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, FetchBackToListMsg(), FetchUpdatedChatListCmd())
 			return m, tea.Batch(cmds...)
 		case tea.KeyEnter:
+			var message *sqllite.ChatMessage = nil
 			if m.textarea.Focused() {
-				m.sendMessage()
+				message = m.sendMessage()
 				m.textarea.Reset()
 				cmds = append(cmds, viewport.Sync(m.viewport))
 			}
-			chatId := m.cache.GetChat().ChatId
-			cmds = append(cmds, FetchUpdatedChatListCmd(), FetchUpdateMessage(chatId))
+			if message != nil {
+				cmds = append(cmds, FetchUpdatedChatListCmd())
+				chatId := m.cache.GetChat().ChatId
+				cmds = append(cmds, FetchUpdateMessage(chatId, []*sqllite.ChatMessage{message}))
+			}
 		}
 	case updateMessage:
 		if m.cache.GetChat().ChatId == msg.chatId {
-			m.updateMessage()
+			m.cache.UpdateMessage(msg.msgs)
 		}
 	}
 	// 更新子组件
@@ -125,10 +129,10 @@ func (m chatModel) View() string {
 	return lipgloss.JoinVertical(lipgloss.Left, title, messageArea, inputArea)
 }
 
-func (m chatModel) sendMessage() {
+func (m chatModel) sendMessage() *sqllite.ChatMessage {
 	value := m.textarea.Value()
 	if value == "" {
-		return
+		return nil
 	}
 	chat := m.cache.GetChat()
 	request := c2csend.NewRequest(conf.UserId, chat.ChatId, value, 0, 0, 0)
@@ -136,9 +140,10 @@ func (m chatModel) sendMessage() {
 	if err != nil {
 		logger.Errorf("消息发送失败, error: %v", err)
 		m.textarea.SetValue("")
-		return
+		return nil
 	}
-	m.saveC2CMessage(request, response)
+	msg := m.saveC2CMessage(request, response)
+	return msg
 }
 
 func (m *chatModel) updateSize(width, height int) {
@@ -149,21 +154,17 @@ func (m *chatModel) updateSize(width, height int) {
 	m.textarea.SetWidth(width - 2)
 }
 
-func (m chatModel) saveC2CMessage(request *c2csend.Request, response protocol.Response) {
+func (m chatModel) saveC2CMessage(request *c2csend.Request, response protocol.Response) *sqllite.ChatMessage {
 	chat := m.cache.GetChat()
 	message := sqllite.NewMessage(1, chat.ChatId, response.MsgId(), conf.UserId, chat.ChatId,
 		0, 0, response.MsgSeq(), request.Content, request.ContentType, request.CmdId(),
 		request.SendTimestamp, 0, response.ServerSeq())
 	if err := sqllite.SaveOrUpdateMessage(context.Background(), message); err != nil {
 		logger.Errorf("saveC2CMessage error: %v", err)
-		return
 	}
 	// 更新会话版本号
 	service.UpdateChatVersion(chat.ChatId, chat.ChatType)
-}
-
-func (m *chatModel) updateMessage() {
-	m.cache.UpdateMessage()
+	return message
 }
 
 func (m chatModel) viewMessage() string {

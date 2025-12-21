@@ -48,13 +48,15 @@ func FetchBackToListMsg() tea.Cmd {
 
 type updateMessage struct {
 	chatId int64
+	msgs   []*sqllite.ChatMessage
 }
 
 // FetchUpdateMessage 更新消息
-func FetchUpdateMessage(chatId int64) tea.Cmd {
+func FetchUpdateMessage(chatId int64, msg []*sqllite.ChatMessage) tea.Cmd {
 	return func() tea.Msg {
 		return updateMessage{
 			chatId: chatId,
+			msgs:   msg,
 		}
 	}
 }

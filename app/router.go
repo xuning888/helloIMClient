@@ -1,7 +1,6 @@
 package app
 
 import (
-	"log"
 	"sync"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -53,6 +52,6 @@ func (h *router) Register(cmdId int32, handler Handler) {
 }
 
 func defaultHandler(ctx *ImContext) error {
-	log.Printf("defaultHandler 未知消息类型, cmdId: %d\n", ctx.CmdId)
+	logger.Errorf("defaultHandler 未知消息类型, cmdId: %d", ctx.CmdId)
 	return nil
 }

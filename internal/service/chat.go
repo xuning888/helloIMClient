@@ -20,6 +20,11 @@ func GetAllChat(ctx context.Context) ([]*sqllite.ImChat, error) {
 	return chats, nil
 }
 
+func GetAllChatFromRemote(ctx context.Context) ([]*sqllite.ImChat, error) {
+	UpdateChatsFromRemote()
+	return GetAllChat(ctx)
+}
+
 func GetOrCreateChat(ctx context.Context, chatId int64, chatType int32) (*sqllite.ImChat, error) {
 	if chat, err := sqllite.SelectChat(ctx, conf.UserId, chatId); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

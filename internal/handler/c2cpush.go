@@ -51,8 +51,8 @@ func C2cPushHandler(ctx *app.ImContext) error {
 	service.UpdateChatVersion(msgFrom, 1)
 	// 更新tui
 	ctx.SendTuiCmd(
-		tui.FetchUpdateMessage(msgFrom), // 发送更新消息的cmd
-		tui.FetchUpdatedChatListCmd(),   // 发送更新会话列表的cmd
+		tui.FetchUpdatedChatListCmd(),                                    // 发送更新会话列表的cmd
+		tui.FetchUpdateMessage(msgFrom, []*sqllite.ChatMessage{message}), // 发送更新消息的cmd
 	)
 	return nil
 }

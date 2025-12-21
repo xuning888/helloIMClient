@@ -2,6 +2,7 @@ package sqllite
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/xuning888/helloIMClient/conf"
 	"gorm.io/gorm/clause"
@@ -28,6 +29,17 @@ type ChatMessage struct {
 
 func (ChatMessage) TableName() string {
 	return "chat_message"
+}
+
+func (m *ChatMessage) String() string {
+	if m == nil {
+		return ""
+	}
+	marshal, err := json.Marshal(m)
+	if err != nil {
+		return ""
+	}
+	return string(marshal)
 }
 
 func NewMessage(chatType int32, chatId, msgId int64,
@@ -97,6 +109,30 @@ func GetMessagesWithOffset(ctx context.Context, chatId, offset int64, limit int)
 		Order("msg_id desc").
 		Limit(limit).
 		Find(&msgs).Error
+	if err != nil {
+		return nil, err
+	}
+	return msgs, nil
+}
+
+func GetRecentMessage(ctx context.Context, chatId int64, chatType int32, limit int) ([]*ChatMessage, error) {
+	msgs := make([]*ChatMessage, 0)
+	err := DB.WithContext(ctx).Model(&ChatMessage{}).
+		Where("chat_id = ? and chat_type = ? ", chatId, chatType).
+		Order("server_seq desc").
+		Limit(limit).Find(&msgs).Error
+	if err != nil {
+		return nil, err
+	}
+	return msgs, nil
+}
+
+func GetMessagesBySeq(ctx context.Context, chatId int64, minServerSeq, maxServerSeq int64) ([]*ChatMessage, error) {
+	msgs := make([]*ChatMessage, 0)
+	err := DB.WithContext(ctx).Model(&ChatMessage{}).
+		Where("chat_id = ? and server_seq >= ? and server_seq <= ?", chatId, minServerSeq, maxServerSeq).
+		Find(&msgs).
+		Order("server_seq").Error
 	if err != nil {
 		return nil, err
 	}

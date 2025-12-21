@@ -28,13 +28,13 @@ type chatListModel struct {
 func initChatListModel(imCli *transport.ImClient) chatListModel {
 	// 拉去全部会话
 	ctx := context.Background()
-	chats, err := service.GetAllChat(ctx)
+	chats, err := service.GetAllChatFromRemote(ctx)
 	if err != nil {
 		logger.Errorf("Error MultiGetChat: %v", err)
 		chats = make([]*sqllite.ImChat, 0)
 	}
 	// 获取会话的最后一条消息
-	lastMessages := service.BatchLastMessage(ctx, chats)
+	lastMessages := service.BatchLastMessageFromRemote(ctx, chats)
 	return chatListModel{
 		imCli:        imCli,
 		cursor:       0,
