@@ -4,9 +4,10 @@ import (
 	"context"
 	"sync"
 
-	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
 	"github.com/xuning888/helloIMClient/protocol"
 )
+
+type GetSeq func() int32
 
 type syncItem struct {
 	mux      sync.Mutex
@@ -62,6 +63,7 @@ type syncQueue struct {
 	mutex  *sync.Mutex
 	cond   *sync.Cond
 	closed bool
+	getSeq GetSeq
 }
 
 func (s *syncQueue) put(request *syncItem) bool {
@@ -71,7 +73,7 @@ func (s *syncQueue) put(request *syncItem) bool {
 	if s.closed {
 		return false
 	}
-	request.seq = sqllite.GetSeq()
+	request.seq = s.getSeq()
 	s.queue = append(s.queue, request)
 	return true
 }
@@ -110,11 +112,12 @@ func (s *syncQueue) Close() {
 	s.closed = true
 }
 
-func newSyncQueue(initialSize int) *syncQueue {
+func newSyncQueue(initialSize int, getSeq GetSeq) *syncQueue {
 	syncQ := &syncQueue{
-		queue: make([]*syncItem, 0, initialSize),
-		mutex: &sync.Mutex{},
-		cond:  &sync.Cond{},
+		queue:  make([]*syncItem, 0, initialSize),
+		mutex:  &sync.Mutex{},
+		cond:   &sync.Cond{},
+		getSeq: getSeq,
 	}
 	syncQ.cond.L = syncQ.mutex
 	return syncQ

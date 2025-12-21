@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/xuning888/helloIMClient/conf"
 	"github.com/xuning888/helloIMClient/internal/http"
 	pb "github.com/xuning888/helloIMClient/internal/proto"
 	"github.com/xuning888/helloIMClient/pkg/logger"
@@ -16,8 +18,10 @@ import (
 
 func TestNewClient(t *testing.T) {
 	logger.InitLogger()
+	conf.UserId = 1
+	conf.UserName = "user1"
 	http.Init("http://127.0.0.1:8087", time.Second*5)
-	client, err := NewImClient(testDispatch)
+	client, err := NewImClient(getSeq, testDispatch)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,7 +30,7 @@ func TestNewClient(t *testing.T) {
 	}
 	defer client.Close()
 	t.Logf("ips: %v", client.Info.IpList)
-	var n = 1
+	var n = 1000
 	for i := 0; i < n; i++ {
 		request := buildMsg(i, 1)
 		now := time.Now()
@@ -55,7 +59,7 @@ func TestImClient_WriteMessage(t *testing.T) {
 func writeMessage(i int, t *testing.T) {
 	logger.InitLogger()
 	http.Init("http://127.0.0.1:8087", time.Second*5)
-	client, err := NewImClient(testDispatch)
+	client, err := NewImClient(getSeq, testDispatch)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,4 +94,12 @@ func buildMsg(i int, from int64) *c2csend.Request {
 
 func testDispatch(result *Result) {
 	fmt.Printf("testDispatch: %v\n", result)
+}
+
+var seq atomic.Int32 = atomic.Int32{}
+
+func getSeq() int32 {
+	load := seq.Load()
+	seq.Add(1)
+	return load
 }

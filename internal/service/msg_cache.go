@@ -99,6 +99,7 @@ func (m *MsgCache) checkMissingMessageAndSort(ctx context.Context) {
 	}
 	m.addMessages(msgs)
 	m.sortMessage()
+	m.message = truncateMessages(m.message)
 }
 
 func (m *MsgCache) sortMessage() {
@@ -144,4 +145,15 @@ func sortMessages(messages []*sqllite.ChatMessage) {
 	sort.Slice(messages, func(i, j int) bool {
 		return messages[i].ServerSeq < messages[j].ServerSeq
 	})
+}
+
+func truncateMessages(messages []*sqllite.ChatMessage) []*sqllite.ChatMessage {
+	if len(messages) <= maxCachedMessages {
+		return messages
+	}
+	// 返回最新的 maxCachedMessages 条消息
+	startIndex := len(messages) - maxCachedMessages
+	msgs := make([]*sqllite.ChatMessage, maxCachedMessages)
+	copy(msgs, messages[startIndex:])
+	return msgs
 }

@@ -47,9 +47,9 @@ type ImClient struct {
 	dispatch  Dispatch
 }
 
-func NewImClient(dispatch Dispatch) (*ImClient, error) {
+func NewImClient(getSeq GetSeq, dispatch Dispatch) (*ImClient, error) {
 	// 初始化imcli
-	imCli, err := initImCli(dispatch)
+	imCli, err := initImCli(getSeq, dispatch)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func (imCli *ImClient) heartBeat() error {
 	return nil
 }
 
-func initImCli(dispatch Dispatch) (*ImClient, error) {
+func initImCli(getSeq GetSeq, dispatch Dispatch) (*ImClient, error) {
 	imCli := &ImClient{
 		Info:     &baseInfo{},
 		dispatch: dispatch,
@@ -174,6 +174,6 @@ func initImCli(dispatch Dispatch) (*ImClient, error) {
 	}
 	imCli.cli = cli
 	// 构造发送器
-	imCli.sender = newSender(transport, 10, 3)
+	imCli.sender = newSender(transport, 10, 3, getSeq)
 	return imCli, nil
 }

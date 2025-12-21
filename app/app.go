@@ -34,7 +34,7 @@ func NewApp() (*ImApp, error) {
 			handlers: make(map[int32]Handler),
 		},
 	}
-	imClient, err := transport.NewImClient(imApp.dispatch)
+	imClient, err := transport.NewImClient(sqllite.GetSeq, imApp.dispatch)
 	if err != nil {
 		return nil, err
 	}
