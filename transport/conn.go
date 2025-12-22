@@ -41,9 +41,10 @@ func (c *Conn) asyncWrite(item *syncItem) error {
 	return c.asyncWrite0(item)
 }
 
+// asyncWrite0 发送上行消息
 func (c *Conn) asyncWrite0(item *syncItem) error {
 	seq, request := item.seq, item.request
-	bytes, err := protocol.EncodeMessageToBytes(seq, request)
+	bytes, err := protocol.EncodeMessageToBytes(seq, protocol.REQ, request)
 	if err != nil {
 		return err
 	}
@@ -57,8 +58,9 @@ func (c *Conn) asyncWrite0(item *syncItem) error {
 	return nil
 }
 
+// asyncWriteWithSeq 发送下行ACK
 func (c *Conn) asyncWriteWithSeq(seq int32, request protocol.Request) error {
-	bytes, err := protocol.EncodeMessageToBytes(seq, request)
+	bytes, err := protocol.EncodeMessageToBytes(seq, protocol.RES, request)
 	if err != nil {
 		return err
 	}
@@ -125,18 +127,20 @@ func (c *Conn) doDispatch() {
 }
 
 func (c *Conn) process(frame *protocol.Frame) {
-	key := frame.Key()
 	response, err := protocol.DecodeResp(frame)
-	if value, loaded := c.requests.LoadAndDelete(key); loaded {
-		item := value.(*syncItem)
-		item.err = err
-		item.complete(response)
+	if frame.Header.Req == protocol.RES {
+		key := frame.Key()
+		if value, ok := c.requests.Load(key); ok {
+			item := value.(*syncItem)
+			item.err = err
+			item.complete(response)
+		}
 	} else {
 		r := &Result{
 			resp: response,
 			err:  err,
 		}
-		c.dispatch(r)
+		go c.dispatch(r)
 	}
 }
 

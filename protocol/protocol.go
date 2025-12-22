@@ -47,17 +47,17 @@ func RegisterDecoder(cmdId int32, decoder *Decoder) {
 	decoders[cmdId] = decoder
 }
 
-func EncodeMessageToBytes(seq int32, message Message) ([]byte, error) {
+func EncodeMessageToBytes(seq int32, req int32, message Message) ([]byte, error) {
 	body, err := proto.Marshal(message)
 	if err != nil {
 		return nil, err
 	}
 	h := &MsgHeader{
-		HeaderLength:  int32(DefaultHeaderSize),
-		ClientVersion: ClientVersion,
-		Seq:           seq,
-		CmdId:         message.CmdId(),
-		BodyLength:    int32(len(body)),
+		HeaderLength: int32(DefaultHeaderSize),
+		Req:          req,
+		Seq:          seq,
+		CmdId:        message.CmdId(),
+		BodyLength:   int32(len(body)),
 	}
 	bytes := make([]byte, DefaultHeaderSize+len(body))
 	copy(bytes, EncodeHeader(h))
