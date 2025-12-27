@@ -140,7 +140,7 @@ func (c *Conn) process(frame *protocol.Frame) {
 			resp: response,
 			err:  err,
 		}
-		go c.dispatch(r)
+		c.dispatch(r)
 	}
 }
 
@@ -158,23 +158,24 @@ func (c *Conn) run(f func()) {
 // Decode 从socket读取数据并解码
 func (c *Conn) Decode() (action gnet.Action) {
 	conn := c.conn
+	var hsize = int(protocol.DefaultHeaderSize)
 	for {
-		if conn.InboundBuffered() < protocol.DefaultHeaderSize {
+		if conn.InboundBuffered() < hsize {
 			action = gnet.None
 			return
 		}
-		buf, err := conn.Peek(protocol.DefaultHeaderSize)
+		buf, err := conn.Peek(hsize)
 		if err != nil {
 			action = gnet.None
 			return
 		}
 		header := protocol.DecodeHeader(buf)
-		frameSize := int(header.BodyLength) + protocol.DefaultHeaderSize
+		frameSize := int(header.BodyLength) + hsize
 		if conn.InboundBuffered() < frameSize {
 			action = gnet.None
 			return
 		}
-		if _, err = conn.Discard(protocol.DefaultHeaderSize); err != nil {
+		if _, err = conn.Discard(hsize); err != nil {
 			action = gnet.Close
 			return
 		}

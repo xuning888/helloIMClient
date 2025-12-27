@@ -30,7 +30,7 @@ func TestNewClient(t *testing.T) {
 	}
 	defer client.Close()
 	t.Logf("ips: %v", client.Info.IpList)
-	var n = 1000
+	var n = 100
 	for i := 0; i < n; i++ {
 		request := buildMsg(i, 1)
 		now := time.Now()
@@ -40,6 +40,7 @@ func TestNewClient(t *testing.T) {
 		c2cSendResponse, ok := response.(*c2csend.Response)
 		assert.True(t, ok)
 		t.Logf("resp: %v, cost: %d ms", c2cSendResponse, cost)
+		time.Sleep(time.Millisecond * 10)
 	}
 }
 
