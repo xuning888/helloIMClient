@@ -65,6 +65,25 @@ func EncodeMessageToBytes(seq int32, req byte, message Message) ([]byte, error) 
 	return bytes, nil
 }
 
+func EncodeMessageToFrame(seq int32, req byte, message Message) (*Frame, error) {
+	body, err := proto.Marshal(message)
+	if err != nil {
+		return nil, err
+	}
+	h := &MsgHeader{
+		HeaderLength: DefaultHeaderSize,
+		Req:          req,
+		Seq:          seq,
+		CmdId:        message.CmdId(),
+		BodyLength:   int32(len(body)),
+	}
+	f := &Frame{
+		Header: h,
+		Body:   body,
+	}
+	return f, nil
+}
+
 func DecodeResp(frame *Frame) (Response, error) {
 	cmdId := frame.Header.CmdId
 	decoder := decoders[cmdId]
@@ -85,5 +104,13 @@ func MakeResFrame(frame *Frame) []byte {
 	}
 	bytes := make([]byte, int(DefaultHeaderSize))
 	copy(bytes, EncodeHeader(header))
+	return bytes
+}
+
+func ToBytes(frame *Frame) []byte {
+	h, body := frame.Header, frame.Body
+	bytes := make([]byte, int(DefaultHeaderSize)+len(body))
+	copy(bytes, EncodeHeader(h))
+	copy(bytes[DefaultHeaderSize:], body)
 	return bytes
 }

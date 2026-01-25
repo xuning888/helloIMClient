@@ -3,6 +3,7 @@ module github.com/xuning888/helloIMClient
 go 1.24.0
 
 require (
+	github.com/antlabs/timer v0.1.4
 	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.4
 	github.com/charmbracelet/lipgloss v1.1.0
@@ -18,6 +19,7 @@ require (
 )
 
 require (
+	github.com/antlabs/stl v0.0.2 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/charmbracelet/colorprofile v0.2.3-0.20250311203215-f60798e515dc // indirect

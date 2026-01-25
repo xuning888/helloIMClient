@@ -80,3 +80,7 @@ var DefaultZapLoggerConfig = zap.Config{
 	OutputPaths:      []string{"stderr"},
 	ErrorOutputPaths: []string{"stderr"},
 }
+
+func Named(name string) Logger {
+	return globalLogger.Named(name).Sugar()
+}
