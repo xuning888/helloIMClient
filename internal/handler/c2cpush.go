@@ -33,8 +33,6 @@ func C2cPushHandler(ctx *app.ImContext) error {
 		return err
 	}
 	logger.Infof("C2cPushHandler 接收到单聊下行消息, msgId: %v", response.MsgId())
-	// 收到消息立刻回复ACK
-	go pushAck(ctx, msgFrom, msgTo, response.MsgId(), response.MsgSeq())
 	serverSeq := response.ServerSeq()
 	message := sqllite.NewMessage(1, msgFrom, response.MsgId(),
 		msgFrom, msgTo,
@@ -52,11 +50,4 @@ func C2cPushHandler(ctx *app.ImContext) error {
 		tui.FetchUpdateMessage(msgFrom, []*sqllite.ChatMessage{message}), // 发送更新消息的cmd
 	)
 	return nil
-}
-
-func pushAck(ctx *app.ImContext, msgFrom int64, msgTo int64, msgId int64, msgSeq int32) {
-	request := c2cpush.NewRequest(msgFrom, msgTo, msgId)
-	if err2 := ctx.AsyncSendMessageWithSeq(context.Background(), msgSeq, request); err2 != nil {
-		logger.Errorf("C2cPushHandler sendAck error: %v", err2)
-	}
 }

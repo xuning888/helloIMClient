@@ -20,13 +20,14 @@ var (
 )
 
 type Conn struct {
-	conn     gnet.Conn
-	activate int32 // 是否可用
-	authed   int32 // 是否验证通过
-	resp     chan *protocol.Frame
-	requests sync.Map
-	dispatch Dispatch
-	closeCh  chan struct{}
+	conn       gnet.Conn
+	activate   int32 // 是否可用
+	authed     int32 // 是否验证通过
+	resp       chan *protocol.Frame
+	requests   sync.Map
+	dispatch   Dispatch
+	closeCh    chan struct{}
+	dispatchCh chan *Result
 }
 
 func (c *Conn) asyncWrite(item *syncItem) error {
@@ -140,7 +141,14 @@ func (c *Conn) process(frame *protocol.Frame) {
 			resp: response,
 			err:  err,
 		}
-		c.dispatch(r)
+		resFrameBytes := protocol.MakeResFrame(frame)
+		_ = c.conn.AsyncWrite(resFrameBytes, c.writeCallback)
+
+		select {
+		case c.dispatchCh <- r:
+		default:
+			go func() { c.dispatchCh <- r }()
+		}
 	}
 }
 
@@ -191,15 +199,34 @@ func (c *Conn) Decode() (action gnet.Action) {
 	}
 }
 
+func (c *Conn) dispatch0() {
+	for {
+		select {
+		case r := <-c.dispatchCh:
+			c.dispatch(r)
+		case <-c.closeCh:
+			return
+		}
+	}
+}
+
+func (c *Conn) startDispatchWorkers(n int) {
+	for i := 0; i < n; i++ {
+		c.run(c.dispatch0)
+	}
+}
+
 func newConn(conn gnet.Conn, dispatch Dispatch) *Conn {
 	pConn := &Conn{
-		conn:     conn,
-		activate: 1,
-		resp:     make(chan *protocol.Frame, 1),
-		requests: sync.Map{},
-		dispatch: dispatch,
-		closeCh:  make(chan struct{}, 1),
+		conn:       conn,
+		activate:   1,
+		resp:       make(chan *protocol.Frame, 10),
+		requests:   sync.Map{},
+		dispatch:   dispatch,
+		closeCh:    make(chan struct{}, 1),
+		dispatchCh: make(chan *Result, 10000),
 	}
 	pConn.run(pConn.doDispatch)
+	pConn.startDispatchWorkers(10)
 	return pConn
 }

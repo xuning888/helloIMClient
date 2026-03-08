@@ -74,7 +74,7 @@ func BatchLastMessageFromRemote(ctx context.Context, chats []*sqllite.ImChat) ma
 func PullOfflineMsg(ctx context.Context,
 	chatId int64, chatType int32, minServerSeq, maxServerSeq int64) ([]*sqllite.ChatMessage, error) {
 	messages, err := sqllite.GetMessagesBySeq(ctx, chatId, minServerSeq, maxServerSeq)
-	if err != nil {
+	if err != nil || len(messages) == 0 {
 		logger.Errorf("PullOfflineMsg.GetMessages chatId: %v, minServerSeq: %d maxServerSeq: %d, error: %v",
 			chatId, minServerSeq, maxServerSeq, err)
 		if messages, err = http.PullOfflineMsg(conf.UserId, chatId, chatType, minServerSeq, maxServerSeq); err != nil {

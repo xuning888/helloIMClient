@@ -73,3 +73,17 @@ func DecodeResp(frame *Frame) (Response, error) {
 	}
 	return nil, fmt.Errorf("cmdId: %d, unsupport decode resposne", cmdId)
 }
+
+func MakeResFrame(frame *Frame) []byte {
+	h := frame.Header
+	header := &MsgHeader{
+		HeaderLength: DefaultHeaderSize,
+		Req:          RES,
+		Seq:          h.Seq,
+		CmdId:        h.CmdId,
+		BodyLength:   0,
+	}
+	bytes := make([]byte, int(DefaultHeaderSize))
+	copy(bytes, EncodeHeader(header))
+	return bytes
+}

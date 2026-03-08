@@ -88,6 +88,12 @@ func (m *MsgCache) checkMissingMessageAndSort(ctx context.Context) {
 	if minSeq == maxSeq {
 		return
 	}
+	// 如果差距超过了50条，那么就拉去近线的50条
+	var maxPull int64 = 50
+	diff := maxSeq - minSeq
+	if diff > maxPull {
+		minSeq = maxSeq - maxPull
+	}
 	logger.Infof("checkMessage missing, minSeq: %v, maxSeq: %v", minSeq, maxSeq)
 	msgs, err := PullOfflineMsg(ctx, m.chat.ChatId, m.chat.ChatType, minSeq, maxSeq)
 	if err != nil {
