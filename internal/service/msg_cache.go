@@ -105,7 +105,7 @@ func (m *MsgCache) checkMissingMessageAndSort(ctx context.Context) {
 	}
 	m.addMessages(msgs)
 	m.sortMessage()
-	m.message = truncateMessages(m.message)
+	m.message = m.truncateMessages(m.message)
 }
 
 func (m *MsgCache) sortMessage() {
@@ -153,7 +153,7 @@ func sortMessages(messages []*sqllite.ChatMessage) {
 	})
 }
 
-func truncateMessages(messages []*sqllite.ChatMessage) []*sqllite.ChatMessage {
+func (m *MsgCache) truncateMessages(messages []*sqllite.ChatMessage) []*sqllite.ChatMessage {
 	if len(messages) <= maxCachedMessages {
 		return messages
 	}
@@ -161,5 +161,8 @@ func truncateMessages(messages []*sqllite.ChatMessage) []*sqllite.ChatMessage {
 	startIndex := len(messages) - maxCachedMessages
 	msgs := make([]*sqllite.ChatMessage, maxCachedMessages)
 	copy(msgs, messages[startIndex:])
+	for _, msg := range messages[:startIndex] {
+		delete(m.dup, msg.MsgID)
+	}
 	return msgs
 }

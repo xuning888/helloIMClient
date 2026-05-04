@@ -3,7 +3,7 @@ syntax = "proto3";
 package helloim.protocol;
 
 
-option java_package = "com.github.xuning888.helloim.contract.protobuf";
+option java_package = "com.github.xuning888.helloim.common.protobuf";
 option java_outer_classname = "MsgCmd";
 option go_package = "github.com/xuning888/helloIMClient/internal/proto;helloim_proto";
 
@@ -17,4 +17,7 @@ enum CmdId {
   CMD_ID_C2CPUSH = 1007; // 单聊下行
   CMD_ID_C2GSEND = 1008; // 群聊上行
   CMD_ID_C2GPUSH = 1009; // 群聊下行
+
+  CMD_ID_SEND = 1010; // send上行
+  CMD_ID_PUSH = 1011; // push下行
 }

@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package helloim.protocol;
+
+option java_package = "com.github.xuning888.helloim.common.protobuf";
+option java_outer_classname = "SendPktProto";
+option java_multiple_files = true;
+option go_package = "github.com/xuning888/helloIMClient/internal/proto;helloim_proto";
+
+import "payload.proto";
+
+message SendPktRequest {
+  string from = 1; // 消息发送方的uid
+  int32 fromUserType = 2;
+  string chatId = 3; // 消息接收方的会话id
+  int32 chatType = 4; // 消息接收方的会话类型
+  int64 sendTimestamp = 5; // 发送消息的时间戳
+  int32 toUserType = 6; // 消息接收方的userType
+  Payload payload = 7; // 消息内容
+  string extra = 8; // 扩展字段
+}
+
+message SendPktResponse {
+  int64 msgId = 1; // 消息ID
+  int64 timestamp = 2; // 收到上行消息的时间戳
+  int64 serverSeq = 3; // 服务端消息序号
+}

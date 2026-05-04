@@ -4,20 +4,13 @@ syntax = "proto3";
 package helloim.protocol;
 
 option java_package = "com.github.xuning888.helloim.common.protobuf";
-option java_outer_classname = "Echo";
+option java_outer_classname = "PayloadTypeProto";
+option java_multiple_files = true;
 option go_package = "github.com/xuning888/helloIMClient/internal/proto;helloim_proto";
 
 
-message EchoRequest {
-  string msg = 1;
-}
-
-message EchoResponse {
-  string msg = 2;
-}
-
-message EmptyRequest {
-}
-
-message EmptyResponse {
+enum PayloadType {
+  TEXT = 0; // 文本
+  IMAGE = 1; // 图片消息
+  RECEIPT = 2; // 已读回执
 }

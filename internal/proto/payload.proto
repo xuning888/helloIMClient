@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package helloim.protocol;
+
+option java_package = "com.github.xuning888.helloim.common.protobuf";
+option java_outer_classname = "PayloadProto";
+option java_multiple_files = true;
+option go_package = "github.com/xuning888/helloIMClient/internal/proto;helloim_proto";
+
+
+import "payload_type.proto";
+
+// 文本消息
+message TextPayload {
+  string content = 1;
+}
+
+// 图片消息
+message ImagePayload {
+  string imageUrl = 1;
+}
+
+// 文件消息
+message FilePayload {
+  string filename = 1;
+  string fileUrl = 2;
+}
+
+// 已读回执
+message ReceiptPayload {
+  int64 msgId = 1; // 已读的消息id
+  int64 serverSeq = 2; // 已读消息的服务端序号
+}
+
+message Payload {
+  PayloadType payloadType = 1; // 消息类型
+  bool at = 2; // 是否@人, 群聊场景使用
+  repeated string atUid = 3; // 被@的人, 群聊场景使用
+  oneof Content {
+    TextPayload text = 4;
+    ImagePayload image = 5;
+  }
+}
