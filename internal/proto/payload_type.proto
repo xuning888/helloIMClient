@@ -13,4 +13,5 @@ enum PayloadType {
   TEXT = 0; // 文本
   IMAGE = 1; // 图片消息
   RECEIPT = 2; // 已读回执
+  FILE = 3; // 文件消息
 }

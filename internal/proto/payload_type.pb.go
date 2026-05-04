@@ -27,6 +27,7 @@ const (
 	PayloadType_TEXT    PayloadType = 0 // 文本
 	PayloadType_IMAGE   PayloadType = 1 // 图片消息
 	PayloadType_RECEIPT PayloadType = 2 // 已读回执
+	PayloadType_FILE    PayloadType = 3 // 文件消息
 )
 
 // Enum value maps for PayloadType.
@@ -35,11 +36,13 @@ var (
 		0: "TEXT",
 		1: "IMAGE",
 		2: "RECEIPT",
+		3: "FILE",
 	}
 	PayloadType_value = map[string]int32{
 		"TEXT":    0,
 		"IMAGE":   1,
 		"RECEIPT": 2,
+		"FILE":    3,
 	}
 )
 
@@ -74,11 +77,12 @@ var File_payload_type_proto protoreflect.FileDescriptor
 
 const file_payload_type_proto_rawDesc = "" +
 	"\n" +
-	"\x12payload_type.proto\x12\x10helloim.protocol*/\n" +
+	"\x12payload_type.proto\x12\x10helloim.protocol*9\n" +
 	"\vPayloadType\x12\b\n" +
 	"\x04TEXT\x10\x00\x12\t\n" +
 	"\x05IMAGE\x10\x01\x12\v\n" +
-	"\aRECEIPT\x10\x02B\x83\x01\n" +
+	"\aRECEIPT\x10\x02\x12\b\n" +
+	"\x04FILE\x10\x03B\x83\x01\n" +
 	",com.github.xuning888.helloim.common.protobufB\x10PayloadTypeProtoP\x01Z?github.com/xuning888/helloIMClient/internal/proto;helloim_protob\x06proto3"
 
 var (
