@@ -28,8 +28,11 @@ message FilePayload {
 
 // 已读回执
 message ReceiptPayload {
-  int64 msgId = 1; // 已读的消息id
-  int64 serverSeq = 2; // 已读消息的服务端序号
+  message Data {
+    int64 msgId = 1; // 已读的消息id
+    int64 serverSeq = 2; // 已读消息的服务端序号
+  }
+  repeated Data receipts = 1;
 }
 
 message Payload {
@@ -39,5 +42,7 @@ message Payload {
   oneof Content {
     TextPayload text = 4;
     ImagePayload image = 5;
+    FilePayload file = 6;
+    ReceiptPayload receipt = 7;
   }
 }

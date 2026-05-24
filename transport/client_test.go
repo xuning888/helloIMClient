@@ -13,7 +13,7 @@ import (
 	"github.com/xuning888/helloIMClient/internal/http"
 	pb "github.com/xuning888/helloIMClient/internal/proto"
 	"github.com/xuning888/helloIMClient/pkg/logger"
-	"github.com/xuning888/helloIMClient/protocol/c2csend"
+	"github.com/xuning888/helloIMClient/protocol/send"
 )
 
 func TestNewClient(t *testing.T) {
@@ -37,9 +37,9 @@ func TestNewClient(t *testing.T) {
 		response, err2 := client.WriteMessage(context.Background(), request)
 		cost := time.Since(now).Milliseconds()
 		assert.Nil(t, err2)
-		c2cSendResponse, ok := response.(*c2csend.Response)
+		sendResponse, ok := response.(*send.Response)
 		assert.True(t, ok)
-		t.Logf("resp: %v, cost: %d ms", c2cSendResponse, cost)
+		t.Logf("resp: %v, cost: %d ms", sendResponse, cost)
 		time.Sleep(time.Millisecond * 10)
 	}
 }
@@ -73,24 +73,18 @@ func writeMessage(i int, t *testing.T) {
 	response, err2 := client.WriteMessage(context.Background(), request)
 	cost := time.Since(now).Milliseconds()
 	assert.Nil(t, err2)
-	c2cSendResponse, ok := response.(*c2csend.Response)
+	sendResponse, ok := response.(*send.Response)
 	assert.True(t, ok)
-	t.Logf("resp: %v, cost: %d ms", c2cSendResponse, cost)
+	t.Logf("resp: %v, cost: %d ms", sendResponse, cost)
 }
 
-func buildMsg(i int, from int64) *c2csend.Request {
-	request := &c2csend.Request{
-		C2CSendRequest: &pb.C2CSendRequest{
-			From:          fmt.Sprintf("%d", from),
-			To:            "2",
-			Content:       fmt.Sprintf("hello world %d", i),
-			ContentType:   0,
-			SendTimestamp: time.Now().UnixMilli(),
-			FromUserType:  0,
-			ToUserType:    0,
+func buildMsg(i int, from int64) *send.Request {
+	return send.NewRequest(from, 2, 1, &pb.Payload{
+		PayloadType: pb.PayloadType_TEXT,
+		Content: &pb.Payload_Text{
+			Text: &pb.TextPayload{Content: fmt.Sprintf("hello world %d", i)},
 		},
-	}
-	return request
+	}, 0, 0)
 }
 
 func testDispatch(result *Result) {

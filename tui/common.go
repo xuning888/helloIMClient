@@ -6,13 +6,12 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/xuning888/helloIMClient/internal/service"
+	"github.com/xuning888/helloIMClient/im"
 	"github.com/xuning888/helloIMClient/pkg/logger"
-	"github.com/xuning888/helloIMClient/transport"
 )
 
 type commonModel struct {
-	imCli    *transport.ImClient
+	sdk      *im.Client
 	chatList chatListModel
 	chat     *chatModel
 	search   *searchModel
@@ -21,10 +20,10 @@ type commonModel struct {
 	height   int
 }
 
-func InitMainModel(imCli *transport.ImClient) tea.Model {
-	chatList := initChatListModel(imCli)
+func InitMainModel(sdk *im.Client) tea.Model {
+	chatList := initChatListModel(sdk)
 	return &commonModel{
-		imCli:    imCli,
+		sdk:      sdk,
 		chatList: chatList,
 		chat:     nil,
 		focus:    "list",
@@ -48,19 +47,18 @@ func (m commonModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 	case selectChatMsg:
-		// 选择聊天
 		if m.chat == nil {
-			m.chat = initChatModel(msg.chat, m.imCli)
+			m.chat = initChatModel(msg.chat, m.sdk)
 			m.focus = "chat"
 			logger.Infof("首次进入会话")
 		} else {
 			if m.chat.cache.GetChat().ChatId != msg.chat.ChatId {
-				m.chat = initChatModel(msg.chat, m.imCli)
+				m.chat = initChatModel(msg.chat, m.sdk)
 				m.focus = "chat"
 			}
 		}
 		m.updateLayout()
-	case backToListMsg, exitSearch: // 返回聊天列表
+	case backToListMsg, exitSearch:
 		m.focus = "list"
 		m.chat = nil
 	case startSearchMsg:
@@ -70,17 +68,17 @@ func (m commonModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case searchSelectedUserMsg:
 		user := msg.user
 		if user != nil {
-			chat, err := service.GetOrCreateChat(context.Background(), user.UserID, 1)
+			chat, err := m.sdk.Storage().Chats.GetOrCreate(context.Background(), user.UserID, 1)
 			if err != nil {
 				logger.Errorf("创建聊天会话失败: %v", err)
 				return m, nil
 			}
-			m.chat = initChatModel(chat, m.imCli)
+			m.chat = initChatModel(chat, m.sdk)
 			m.focus = "chat"
 			m.search = nil
 		}
 		logger.Infof("触发搜索结果事件, user: %v", user)
-		cmds = append(cmds, FetchUpdatedChatListCmd())
+		cmds = append(cmds, FetchUpdatedChatListCmd(m.sdk))
 		m.updateLayout()
 	}
 	updatedList, listCmd := m.chatList.Update(msg)
@@ -118,11 +116,9 @@ func (m commonModel) View() string {
 			return m.search.View()
 		}
 	}
-	// 微信风格布局：左侧会话列表，右侧聊天窗口
 	leftWidth := m.width / 3
 	rightWidth := m.width - leftWidth
 
-	// 左侧会话列表
 	leftPanel := m.chatList.View()
 	leftPanel = lipgloss.NewStyle().
 		Width(leftWidth).
@@ -131,7 +127,6 @@ func (m commonModel) View() string {
 		BorderForeground(borderColor).
 		Render(leftPanel)
 
-	// 右侧内容
 	var rightPanel string
 	if m.focus == "chat" && m.chat != nil {
 		rightPanel = m.chat.View()
@@ -145,10 +140,8 @@ func (m commonModel) View() string {
 		Height(m.height).
 		Render(rightPanel)
 
-	// 组合左右面板
 	content := lipgloss.JoinHorizontal(lipgloss.Top, leftPanel, rightPanel)
 
-	// 底部状态栏
 	statusBar := m.statusBarView()
 
 	return lipgloss.JoinVertical(lipgloss.Left, content, statusBar)

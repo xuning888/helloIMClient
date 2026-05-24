@@ -167,8 +167,7 @@ func (x *FilePayload) GetFileUrl() string {
 // 已读回执
 type ReceiptPayload struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	MsgId         int64                  `protobuf:"varint,1,opt,name=msgId,proto3" json:"msgId,omitempty"`         // 已读的消息id
-	ServerSeq     int64                  `protobuf:"varint,2,opt,name=serverSeq,proto3" json:"serverSeq,omitempty"` // 已读消息的服务端序号
+	Receipts      []*ReceiptPayload_Data `protobuf:"bytes,1,rep,name=receipts,proto3" json:"receipts,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -203,18 +202,11 @@ func (*ReceiptPayload) Descriptor() ([]byte, []int) {
 	return file_payload_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *ReceiptPayload) GetMsgId() int64 {
+func (x *ReceiptPayload) GetReceipts() []*ReceiptPayload_Data {
 	if x != nil {
-		return x.MsgId
+		return x.Receipts
 	}
-	return 0
-}
-
-func (x *ReceiptPayload) GetServerSeq() int64 {
-	if x != nil {
-		return x.ServerSeq
-	}
-	return 0
+	return nil
 }
 
 type Payload struct {
@@ -226,6 +218,8 @@ type Payload struct {
 	//
 	//	*Payload_Text
 	//	*Payload_Image
+	//	*Payload_File
+	//	*Payload_Receipt
 	Content       isPayload_Content `protobuf_oneof:"Content"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -307,6 +301,24 @@ func (x *Payload) GetImage() *ImagePayload {
 	return nil
 }
 
+func (x *Payload) GetFile() *FilePayload {
+	if x != nil {
+		if x, ok := x.Content.(*Payload_File); ok {
+			return x.File
+		}
+	}
+	return nil
+}
+
+func (x *Payload) GetReceipt() *ReceiptPayload {
+	if x != nil {
+		if x, ok := x.Content.(*Payload_Receipt); ok {
+			return x.Receipt
+		}
+	}
+	return nil
+}
+
 type isPayload_Content interface {
 	isPayload_Content()
 }
@@ -319,9 +331,73 @@ type Payload_Image struct {
 	Image *ImagePayload `protobuf:"bytes,5,opt,name=image,proto3,oneof"`
 }
 
+type Payload_File struct {
+	File *FilePayload `protobuf:"bytes,6,opt,name=file,proto3,oneof"`
+}
+
+type Payload_Receipt struct {
+	Receipt *ReceiptPayload `protobuf:"bytes,7,opt,name=receipt,proto3,oneof"`
+}
+
 func (*Payload_Text) isPayload_Content() {}
 
 func (*Payload_Image) isPayload_Content() {}
+
+func (*Payload_File) isPayload_Content() {}
+
+func (*Payload_Receipt) isPayload_Content() {}
+
+type ReceiptPayload_Data struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	MsgId         int64                  `protobuf:"varint,1,opt,name=msgId,proto3" json:"msgId,omitempty"`         // 已读的消息id
+	ServerSeq     int64                  `protobuf:"varint,2,opt,name=serverSeq,proto3" json:"serverSeq,omitempty"` // 已读消息的服务端序号
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReceiptPayload_Data) Reset() {
+	*x = ReceiptPayload_Data{}
+	mi := &file_payload_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReceiptPayload_Data) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReceiptPayload_Data) ProtoMessage() {}
+
+func (x *ReceiptPayload_Data) ProtoReflect() protoreflect.Message {
+	mi := &file_payload_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReceiptPayload_Data.ProtoReflect.Descriptor instead.
+func (*ReceiptPayload_Data) Descriptor() ([]byte, []int) {
+	return file_payload_proto_rawDescGZIP(), []int{3, 0}
+}
+
+func (x *ReceiptPayload_Data) GetMsgId() int64 {
+	if x != nil {
+		return x.MsgId
+	}
+	return 0
+}
+
+func (x *ReceiptPayload_Data) GetServerSeq() int64 {
+	if x != nil {
+		return x.ServerSeq
+	}
+	return 0
+}
 
 var File_payload_proto protoreflect.FileDescriptor
 
@@ -334,16 +410,20 @@ const file_payload_proto_rawDesc = "" +
 	"\bimageUrl\x18\x01 \x01(\tR\bimageUrl\"C\n" +
 	"\vFilePayload\x12\x1a\n" +
 	"\bfilename\x18\x01 \x01(\tR\bfilename\x12\x18\n" +
-	"\afileUrl\x18\x02 \x01(\tR\afileUrl\"D\n" +
-	"\x0eReceiptPayload\x12\x14\n" +
+	"\afileUrl\x18\x02 \x01(\tR\afileUrl\"\x8f\x01\n" +
+	"\x0eReceiptPayload\x12A\n" +
+	"\breceipts\x18\x01 \x03(\v2%.helloim.protocol.ReceiptPayload.DataR\breceipts\x1a:\n" +
+	"\x04Data\x12\x14\n" +
 	"\x05msgId\x18\x01 \x01(\x03R\x05msgId\x12\x1c\n" +
-	"\tserverSeq\x18\x02 \x01(\x03R\tserverSeq\"\xe8\x01\n" +
+	"\tserverSeq\x18\x02 \x01(\x03R\tserverSeq\"\xdb\x02\n" +
 	"\aPayload\x12?\n" +
 	"\vpayloadType\x18\x01 \x01(\x0e2\x1d.helloim.protocol.PayloadTypeR\vpayloadType\x12\x0e\n" +
 	"\x02at\x18\x02 \x01(\bR\x02at\x12\x14\n" +
 	"\x05atUid\x18\x03 \x03(\tR\x05atUid\x123\n" +
 	"\x04text\x18\x04 \x01(\v2\x1d.helloim.protocol.TextPayloadH\x00R\x04text\x126\n" +
-	"\x05image\x18\x05 \x01(\v2\x1e.helloim.protocol.ImagePayloadH\x00R\x05imageB\t\n" +
+	"\x05image\x18\x05 \x01(\v2\x1e.helloim.protocol.ImagePayloadH\x00R\x05image\x123\n" +
+	"\x04file\x18\x06 \x01(\v2\x1d.helloim.protocol.FilePayloadH\x00R\x04file\x12<\n" +
+	"\areceipt\x18\a \x01(\v2 .helloim.protocol.ReceiptPayloadH\x00R\areceiptB\t\n" +
 	"\aContentB\x7f\n" +
 	",com.github.xuning888.helloim.common.protobufB\fPayloadProtoP\x01Z?github.com/xuning888/helloIMClient/internal/proto;helloim_protob\x06proto3"
 
@@ -359,24 +439,28 @@ func file_payload_proto_rawDescGZIP() []byte {
 	return file_payload_proto_rawDescData
 }
 
-var file_payload_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_payload_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_payload_proto_goTypes = []any{
-	(*TextPayload)(nil),    // 0: helloim.protocol.TextPayload
-	(*ImagePayload)(nil),   // 1: helloim.protocol.ImagePayload
-	(*FilePayload)(nil),    // 2: helloim.protocol.FilePayload
-	(*ReceiptPayload)(nil), // 3: helloim.protocol.ReceiptPayload
-	(*Payload)(nil),        // 4: helloim.protocol.Payload
-	(PayloadType)(0),       // 5: helloim.protocol.PayloadType
+	(*TextPayload)(nil),         // 0: helloim.protocol.TextPayload
+	(*ImagePayload)(nil),        // 1: helloim.protocol.ImagePayload
+	(*FilePayload)(nil),         // 2: helloim.protocol.FilePayload
+	(*ReceiptPayload)(nil),      // 3: helloim.protocol.ReceiptPayload
+	(*Payload)(nil),             // 4: helloim.protocol.Payload
+	(*ReceiptPayload_Data)(nil), // 5: helloim.protocol.ReceiptPayload.Data
+	(PayloadType)(0),            // 6: helloim.protocol.PayloadType
 }
 var file_payload_proto_depIdxs = []int32{
-	5, // 0: helloim.protocol.Payload.payloadType:type_name -> helloim.protocol.PayloadType
-	0, // 1: helloim.protocol.Payload.text:type_name -> helloim.protocol.TextPayload
-	1, // 2: helloim.protocol.Payload.image:type_name -> helloim.protocol.ImagePayload
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	5, // 0: helloim.protocol.ReceiptPayload.receipts:type_name -> helloim.protocol.ReceiptPayload.Data
+	6, // 1: helloim.protocol.Payload.payloadType:type_name -> helloim.protocol.PayloadType
+	0, // 2: helloim.protocol.Payload.text:type_name -> helloim.protocol.TextPayload
+	1, // 3: helloim.protocol.Payload.image:type_name -> helloim.protocol.ImagePayload
+	2, // 4: helloim.protocol.Payload.file:type_name -> helloim.protocol.FilePayload
+	3, // 5: helloim.protocol.Payload.receipt:type_name -> helloim.protocol.ReceiptPayload
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_payload_proto_init() }
@@ -388,6 +472,8 @@ func file_payload_proto_init() {
 	file_payload_proto_msgTypes[4].OneofWrappers = []any{
 		(*Payload_Text)(nil),
 		(*Payload_Image)(nil),
+		(*Payload_File)(nil),
+		(*Payload_Receipt)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -395,7 +481,7 @@ func file_payload_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_payload_proto_rawDesc), len(file_payload_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

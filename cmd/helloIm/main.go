@@ -7,10 +7,7 @@ import (
 
 	"github.com/xuning888/helloIMClient/app"
 	"github.com/xuning888/helloIMClient/conf"
-	"github.com/xuning888/helloIMClient/internal/dal"
-	"github.com/xuning888/helloIMClient/internal/handler"
-	"github.com/xuning888/helloIMClient/internal/http"
-	pb "github.com/xuning888/helloIMClient/internal/proto"
+	"github.com/xuning888/helloIMClient/im"
 	"github.com/xuning888/helloIMClient/pkg/logger"
 )
 
@@ -34,23 +31,19 @@ func main() {
 	if err := logger.InitLogger(); err != nil {
 		log.Fatal(err)
 	}
-	if err := dal.Init(); err != nil {
-		log.Fatal(err)
-	}
-	// 初始化HTTP客户端
-	http.Init(conf.ServerUrl, time.Second*10)
-	imApp, err := app.NewApp()
+
+	// 使用 SDK 创建客户端
+	sdk, err := im.New(conf.ServerUrl,
+		im.WithUID(conf.UserId),
+		im.WithConnectTimeout(time.Second*10),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
-	// 注册指令
-	register(imApp)
-	// start App
+
+	// 创建应用并启动
+	imApp := app.New(sdk)
 	if err = imApp.Start(); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func register(imApp *app.ImApp) {
-	imApp.Register(int32(pb.CmdId_CMD_ID_C2CPUSH), handler.C2cPushHandler)
 }

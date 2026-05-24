@@ -9,28 +9,27 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/xuning888/helloIMClient/conf"
+	"github.com/xuning888/helloIMClient/im"
+	"github.com/xuning888/helloIMClient/im/payload"
 	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
-	"github.com/xuning888/helloIMClient/internal/service"
 	"github.com/xuning888/helloIMClient/pkg"
 	"github.com/xuning888/helloIMClient/pkg/logger"
 	"github.com/xuning888/helloIMClient/protocol"
-	"github.com/xuning888/helloIMClient/protocol/c2csend"
-	"github.com/xuning888/helloIMClient/transport"
+	"github.com/xuning888/helloIMClient/protocol/send"
 )
 
 var _ tea.Model = &chatModel{}
 
 type chatModel struct {
-	cache    *service.MsgCache
-	imCli    *transport.ImClient
+	cache    im.MsgCache
+	sdk      *im.Client
 	viewport viewport.Model
 	textarea textarea.Model
 	width    int
 	height   int
 }
 
-func initChatModel(chat *sqllite.ImChat, imCli *transport.ImClient) *chatModel {
+func initChatModel(chat *sqllite.ImChat, sdk *im.Client) *chatModel {
 	ta := textarea.New()
 	ta.Placeholder = "输入消息..."
 	ta.Focus()
@@ -41,10 +40,10 @@ func initChatModel(chat *sqllite.ImChat, imCli *transport.ImClient) *chatModel {
 	vp := viewport.New(50, 10)
 	vp.Style = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(borderColor)
 
-	cache := service.NewMsgCache(chat)
+	cache := sdk.Storage().Messages.NewCache(chat)
 	return &chatModel{
 		cache:    cache,
-		imCli:    imCli,
+		sdk:      sdk,
 		viewport: vp,
 		textarea: ta,
 	}
@@ -60,7 +59,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEsc:
-			cmds = append(cmds, FetchBackToListMsg(), FetchUpdatedChatListCmd())
+			cmds = append(cmds, FetchBackToListMsg(), FetchUpdatedChatListCmd(m.sdk))
 			return m, tea.Batch(cmds...)
 		case tea.KeyEnter:
 			var message *sqllite.ChatMessage = nil
@@ -70,7 +69,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, viewport.Sync(m.viewport))
 			}
 			if message != nil {
-				cmds = append(cmds, FetchUpdatedChatListCmd())
+				cmds = append(cmds, FetchUpdatedChatListCmd(m.sdk))
 				chatId := m.cache.GetChat().ChatId
 				cmds = append(cmds, FetchUpdateMessage(chatId, []*sqllite.ChatMessage{message}))
 			}
@@ -80,7 +79,6 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.cache.UpdateMessage(msg.msgs)
 		}
 	}
-	// 更新子组件
 	var taCmd, vpCmd tea.Cmd
 	m.textarea, taCmd = m.textarea.Update(msg)
 	m.viewport, vpCmd = m.viewport.Update(msg)
@@ -98,7 +96,7 @@ func (m chatModel) View() string {
 	var chatName string
 	chat := m.cache.GetChat()
 	if chat.ChatType == 1 {
-		if user, err := service.GetUserById(context.Background(), chat.ChatId); err == nil {
+		if user, err := m.sdk.Storage().Users.Get(context.Background(), chat.ChatId); err == nil {
 			chatName = user.UserName
 		}
 	}
@@ -111,14 +109,12 @@ func (m chatModel) View() string {
 		Align(lipgloss.Center).
 		Render(fmt.Sprintf("与 %s 聊天中", chatName))
 
-	// 消息区域
 	messageArea := m.viewMessage()
 	messageArea = lipgloss.NewStyle().
 		Width(m.width).
-		Height(m.height - 5). // 减去标题和输入框高度
+		Height(m.height - 5).
 		Render(messageArea)
 
-	// 输入区域
 	inputArea := lipgloss.NewStyle().
 		Width(m.width).
 		Height(3).
@@ -135,14 +131,15 @@ func (m chatModel) sendMessage() *sqllite.ChatMessage {
 		return nil
 	}
 	chat := m.cache.GetChat()
-	request := c2csend.NewRequest(conf.UserId, chat.ChatId, value, 0, 0, 0)
-	response, err := m.imCli.WriteMessage(context.Background(), request)
+	p := payload.NewTextMessage(value, false, nil)
+	request := send.NewRequest(m.sdk.GetUID(), chat.ChatId, chat.ChatType, p, 0, 0)
+	response, err := m.sdk.SendMessage(context.Background(), request)
 	if err != nil {
 		logger.Errorf("消息发送失败, error: %v", err)
 		m.textarea.SetValue("")
 		return nil
 	}
-	msg := m.saveC2CMessage(request, response)
+	msg := m.saveSentMessage(request, response)
 	return msg
 }
 
@@ -150,20 +147,22 @@ func (m *chatModel) updateSize(width, height int) {
 	m.width = width
 	m.height = height
 	m.viewport.Width = width - 4
-	m.viewport.Height = height - 7 // 调整视口大小
+	m.viewport.Height = height - 7
 	m.textarea.SetWidth(width - 2)
 }
 
-func (m chatModel) saveC2CMessage(request *c2csend.Request, response protocol.Response) *sqllite.ChatMessage {
+func (m chatModel) saveSentMessage(request *send.Request, response protocol.Response) *sqllite.ChatMessage {
 	chat := m.cache.GetChat()
-	message := sqllite.NewMessage(1, chat.ChatId, response.MsgId(), conf.UserId, chat.ChatId,
-		0, 0, response.MsgSeq(), request.Content, request.ContentType, request.CmdId(),
+	uid := m.sdk.GetUID()
+	p := request.Payload
+	content, contentType := payload.ExtractContent(p)
+	message := sqllite.NewMessage(chat.ChatType, chat.ChatId, response.MsgId(), uid, chat.ChatId,
+		request.FromUserType, request.ToUserType, response.MsgSeq(), content, contentType, request.CmdId(),
 		request.SendTimestamp, 0, response.ServerSeq())
-	if err := sqllite.SaveOrUpdateMessage(context.Background(), message); err != nil {
-		logger.Errorf("saveC2CMessage error: %v", err)
+	if err := m.sdk.Storage().Messages.Save(context.Background(), message); err != nil {
+		logger.Errorf("saveSentMessage error: %v", err)
 	}
-	// 更新会话版本号
-	service.UpdateChatVersion(chat.ChatId, chat.ChatType)
+	m.sdk.Storage().Chats.UpdateVersion(context.Background(), chat.ChatId, chat.ChatType)
 	return message
 }
 
@@ -174,10 +173,10 @@ func (m chatModel) viewMessage() string {
 			"暂无消息，开始对话吧！")
 	}
 	var messages strings.Builder
+	uid := m.sdk.GetUID()
 	for _, msg := range chatMessages {
 		timeStr := pkg.FormatTime(msg.SendTime, pkg.DateTime)
-		if msg.MsgFrom == conf.UserId {
-			// 自己发送的消息，靠右显示
+		if msg.MsgFrom == uid {
 			content := lipgloss.JoinVertical(lipgloss.Left,
 				lipgloss.NewStyle().Foreground(subtextColor).Render(timeStr),
 				msg.MsgContent,
@@ -186,9 +185,8 @@ func (m chatModel) viewMessage() string {
 			message = lipgloss.NewStyle().Width(m.viewport.Width).Align(lipgloss.Right).Render(message)
 			messages.WriteString(message + "\n")
 		} else {
-			// 对方发送的消息，靠左显示
 			var name string
-			if user, err := service.GetUserById(context.Background(), msg.MsgFrom); err == nil {
+			if user, err := m.sdk.Storage().Users.Get(context.Background(), msg.MsgFrom); err == nil {
 				name = user.UserName
 			}
 			content := lipgloss.JoinVertical(lipgloss.Left,

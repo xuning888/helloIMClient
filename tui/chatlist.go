@@ -7,36 +7,33 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/xuning888/helloIMClient/im"
 	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
-	"github.com/xuning888/helloIMClient/internal/service"
 	"github.com/xuning888/helloIMClient/pkg"
 	"github.com/xuning888/helloIMClient/pkg/logger"
-	"github.com/xuning888/helloIMClient/transport"
 )
 
 var _ tea.Model = &chatListModel{}
 
 type chatListModel struct {
-	imCli        *transport.ImClient
-	cursor       int // 游遍, 选择的会话
+	sdk          *im.Client
+	cursor       int
 	chats        []*sqllite.ImChat
 	lastMessages map[string]*sqllite.ChatMessage
 	width        int
 	height       int
 }
 
-func initChatListModel(imCli *transport.ImClient) chatListModel {
-	// 拉去全部会话
+func initChatListModel(sdk *im.Client) chatListModel {
 	ctx := context.Background()
-	chats, err := service.GetAllChatFromRemote(ctx)
+	chats, err := sdk.Storage().Chats.ListFromRemote(ctx)
 	if err != nil {
-		logger.Errorf("Error MultiGetChat: %v", err)
+		logger.Errorf("Error loading chats: %v", err)
 		chats = make([]*sqllite.ImChat, 0)
 	}
-	// 获取会话的最后一条消息
-	lastMessages := service.BatchLastMessageFromRemote(ctx, chats)
+	lastMessages := sdk.Storage().Messages.BatchLastMessageFromRemote(ctx, chats)
 	return chatListModel{
-		imCli:        imCli,
+		sdk:          sdk,
 		cursor:       0,
 		chats:        chats,
 		lastMessages: lastMessages,
@@ -59,18 +56,18 @@ func (m chatListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursor < len(m.chats)-1 {
 				m.cursor++
 			}
-		case tea.KeyEnter.String(): // 选中会话
+		case tea.KeyEnter.String():
 			if m.cursor >= 0 && m.cursor < len(m.chats) {
-				chat := m.chats[m.cursor] // 获取会话
+				chat := m.chats[m.cursor]
 				return m, fetchChatModel(chat)
 			}
 			return m, nil
-		case tea.KeyF3.String(): // 进入搜索
+		case tea.KeyF3.String():
 			return m, fetchStartSearchCmd()
-		case tea.KeyCtrlC.String(): // 退出程序
+		case tea.KeyCtrlC.String():
 			return m, tea.Quit
 		}
-	case chatListUpdatedMsg: // 处理会话更新事件
+	case chatListUpdatedMsg:
 		if msg.err != nil {
 			return m, nil
 		}
@@ -100,7 +97,6 @@ func (m chatListModel) View() string {
 func (m chatListModel) chatListView() string {
 	var content strings.Builder
 
-	// 列表标题
 	title := lipgloss.NewStyle().
 		Width(m.width).
 		Height(4).
@@ -112,11 +108,10 @@ func (m chatListModel) chatListView() string {
 		Render(" 会话列表 ")
 	content.WriteString(title + "\n")
 
-	// 会话项
 	for i, chat := range m.chats {
 		var name string
 		if chat.ChatType == 1 {
-			if user, err := service.GetUserById(context.Background(), chat.ChatId); err == nil {
+			if user, err := m.sdk.Storage().Users.Get(context.Background(), chat.ChatId); err == nil {
 				name = user.UserName
 			}
 		}
@@ -128,7 +123,6 @@ func (m chatListModel) chatListView() string {
 
 		timeStr := pkg.FormatTime(chat.UpdateTimestamp, pkg.DateTime)
 
-		// 会话项内容
 		chatContent := fmt.Sprintf("%s\n%s", name, lastMsgText)
 		timeContent := fmt.Sprintf("%s", timeStr)
 
@@ -146,7 +140,6 @@ func (m chatListModel) chatListView() string {
 
 		content.WriteString(item + "\n")
 
-		// 分隔线
 		if i < len(m.chats)-1 {
 			separator := lipgloss.NewStyle().
 				Width(m.width).

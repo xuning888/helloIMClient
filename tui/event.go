@@ -4,8 +4,8 @@ import (
 	"context"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/xuning888/helloIMClient/im"
 	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
-	"github.com/xuning888/helloIMClient/internal/service"
 )
 
 type chatListUpdatedMsg struct {
@@ -14,14 +14,15 @@ type chatListUpdatedMsg struct {
 	err          error
 }
 
-func FetchUpdatedChatListCmd() tea.Cmd {
+// FetchUpdatedChatListCmd 创建更新会话列表的命令
+func FetchUpdatedChatListCmd(sdk *im.Client) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
-		chats, err := service.GetAllChat(ctx)
+		chats, err := sdk.Storage().Chats.List(ctx)
 		if err != nil {
 			return chatListUpdatedMsg{chats: nil, lastMessages: nil, err: err}
 		}
-		lastMessages := service.BatchLastMessage(ctx, chats)
+		lastMessages := sdk.Storage().Messages.BatchLastMessage(ctx, chats)
 		return chatListUpdatedMsg{chats: chats, lastMessages: lastMessages, err: nil}
 	}
 }
@@ -51,7 +52,7 @@ type updateMessage struct {
 	msgs   []*sqllite.ChatMessage
 }
 
-// FetchUpdateMessage 更新消息
+// FetchUpdateMessage 创建更新消息的命令
 func FetchUpdateMessage(chatId int64, msg []*sqllite.ChatMessage) tea.Cmd {
 	return func() tea.Msg {
 		return updateMessage{
