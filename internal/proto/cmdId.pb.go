@@ -28,10 +28,6 @@ const (
 	CmdId_CMD_ID_ECHO      CmdId = 1    // echo
 	CmdId_CMD_ID_AUTH      CmdId = 2    // AUTH
 	CmdId_CMD_ID_HEARTBEAT CmdId = 3    // 心跳
-	CmdId_CMD_ID_C2CSEND   CmdId = 1006 // 单聊上行
-	CmdId_CMD_ID_C2CPUSH   CmdId = 1007 // 单聊下行
-	CmdId_CMD_ID_C2GSEND   CmdId = 1008 // 群聊上行
-	CmdId_CMD_ID_C2GPUSH   CmdId = 1009 // 群聊下行
 	CmdId_CMD_ID_SEND      CmdId = 1010 // send上行
 	CmdId_CMD_ID_PUSH      CmdId = 1011 // push下行
 )
@@ -43,10 +39,6 @@ var (
 		1:    "CMD_ID_ECHO",
 		2:    "CMD_ID_AUTH",
 		3:    "CMD_ID_HEARTBEAT",
-		1006: "CMD_ID_C2CSEND",
-		1007: "CMD_ID_C2CPUSH",
-		1008: "CMD_ID_C2GSEND",
-		1009: "CMD_ID_C2GPUSH",
 		1010: "CMD_ID_SEND",
 		1011: "CMD_ID_PUSH",
 	}
@@ -55,10 +47,6 @@ var (
 		"CMD_ID_ECHO":      1,
 		"CMD_ID_AUTH":      2,
 		"CMD_ID_HEARTBEAT": 3,
-		"CMD_ID_C2CSEND":   1006,
-		"CMD_ID_C2CPUSH":   1007,
-		"CMD_ID_C2GSEND":   1008,
-		"CMD_ID_C2GPUSH":   1009,
 		"CMD_ID_SEND":      1010,
 		"CMD_ID_PUSH":      1011,
 	}
@@ -95,16 +83,12 @@ var File_cmdId_proto protoreflect.FileDescriptor
 
 const file_cmdId_proto_rawDesc = "" +
 	"\n" +
-	"\vcmdId.proto\x12\x10helloim.protocol*\xcb\x01\n" +
+	"\vcmdId.proto\x12\x10helloim.protocol*w\n" +
 	"\x05CmdId\x12\x12\n" +
 	"\x0eCMD_ID_DEFAULT\x10\x00\x12\x0f\n" +
 	"\vCMD_ID_ECHO\x10\x01\x12\x0f\n" +
 	"\vCMD_ID_AUTH\x10\x02\x12\x14\n" +
-	"\x10CMD_ID_HEARTBEAT\x10\x03\x12\x13\n" +
-	"\x0eCMD_ID_C2CSEND\x10\xee\a\x12\x13\n" +
-	"\x0eCMD_ID_C2CPUSH\x10\xef\a\x12\x13\n" +
-	"\x0eCMD_ID_C2GSEND\x10\xf0\a\x12\x13\n" +
-	"\x0eCMD_ID_C2GPUSH\x10\xf1\a\x12\x10\n" +
+	"\x10CMD_ID_HEARTBEAT\x10\x03\x12\x10\n" +
 	"\vCMD_ID_SEND\x10\xf2\a\x12\x10\n" +
 	"\vCMD_ID_PUSH\x10\xf3\aBw\n" +
 	",com.github.xuning888.helloim.common.protobufB\x06MsgCmdZ?github.com/xuning888/helloIMClient/internal/proto;helloim_protob\x06proto3"
