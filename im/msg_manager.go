@@ -16,7 +16,7 @@ func newMsgManager(cli *Client) *msgManager {
 }
 
 // Send 通过SDK发送消息
-func (mm *msgManager) Send(ctx context.Context, request protocol.Request) (protocol.Response, error) {
+func (mm *msgManager) Send(ctx context.Context, request protocol.Message) (protocol.Message, error) {
 	return mm.cli.SendMessage(ctx, request)
 }
 

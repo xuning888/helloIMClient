@@ -26,7 +26,7 @@ type sender struct {
 	closed    int32          // 原子关闭标志
 }
 
-func (s *sender) writeMessage(ctx context.Context, request protocol.Request) (protocol.Response, error) {
+func (s *sender) writeMessage(ctx context.Context, request protocol.Message) (protocol.Message, error) {
 	item := newSyncItem(request)
 	if putSuccess := s.queue.put(item); !putSuccess {
 		return nil, ErrClosed
@@ -39,7 +39,7 @@ func (s *sender) writeMessage(ctx context.Context, request protocol.Request) (pr
 	return item.response, item.err
 }
 
-func (s *sender) writeMessageWihSeq(ctx context.Context, seq int32, request protocol.Request) error {
+func (s *sender) writeMessageWihSeq(ctx context.Context, seq int32, request protocol.Message) error {
 	return s.transport.roundTripWithSeq(ctx, seq, request)
 }
 

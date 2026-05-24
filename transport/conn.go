@@ -11,7 +11,6 @@ import (
 	"github.com/panjf2000/gnet/v2"
 	"github.com/xuning888/helloIMClient/conf"
 	"github.com/xuning888/helloIMClient/protocol"
-	"github.com/xuning888/helloIMClient/protocol/auth"
 )
 
 var (
@@ -60,7 +59,7 @@ func (c *Conn) asyncWrite0(item *syncItem) error {
 }
 
 // asyncWriteWithSeq 发送下行ACK
-func (c *Conn) asyncWriteWithSeq(seq int32, request protocol.Request) error {
+func (c *Conn) asyncWriteWithSeq(seq int32, request protocol.Message) error {
 	bytes, err := protocol.EncodeMessageToBytes(seq, protocol.RES, request)
 	if err != nil {
 		return err
@@ -74,7 +73,7 @@ func (c *Conn) asyncWriteWithSeq(seq int32, request protocol.Request) error {
 
 func (c *Conn) authReq(ctx context.Context) error {
 	// TODO token
-	authRequest := auth.NewRequest(conf.UserId, 0, "")
+	authRequest := NewAuthRequest(conf.UserId, 0, "")
 	item := newSyncItem(authRequest)
 	if err := c.asyncWrite0(item); err != nil {
 		return err
@@ -82,7 +81,7 @@ func (c *Conn) authReq(ctx context.Context) error {
 	if err := item.await(ctx); err != nil {
 		return err
 	}
-	response := item.response.(*auth.Response)
+	response := item.response.(*AuthResponse)
 	if response.AuthResponse.Success {
 		atomic.StoreInt32(&c.activate, 1)
 		atomic.StoreInt32(&c.authed, 1)
@@ -128,7 +127,7 @@ func (c *Conn) doDispatch() {
 }
 
 func (c *Conn) process(frame *protocol.Frame) {
-	response, err := protocol.DecodeResp(frame)
+	response, err := protocol.DecodeMessage(frame)
 	if frame.Header.Req == protocol.RES {
 		key := frame.Key()
 		if value, ok := c.requests.Load(key); ok {

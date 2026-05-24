@@ -11,15 +11,15 @@ type GetSeq func() int32
 
 type syncItem struct {
 	mux      sync.Mutex
-	request  protocol.Request
-	response protocol.Response
+	request  protocol.Message
+	response protocol.Message
 	done     chan struct{}
 	closed   bool
 	err      error
 	seq      int32
 }
 
-func newSyncItem(request protocol.Request) *syncItem {
+func newSyncItem(request protocol.Message) *syncItem {
 	return &syncItem{
 		mux:     sync.Mutex{},
 		request: request,
@@ -36,7 +36,7 @@ func (s *syncItem) await(ctx context.Context) error {
 	}
 }
 
-func (s *syncItem) complete(res protocol.Response) {
+func (s *syncItem) complete(res protocol.Message) {
 	if s.closed {
 		return
 	}

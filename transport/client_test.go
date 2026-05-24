@@ -37,7 +37,7 @@ func TestNewClient(t *testing.T) {
 		response, err2 := client.WriteMessage(context.Background(), request)
 		cost := time.Since(now).Milliseconds()
 		assert.Nil(t, err2)
-		sendResponse, ok := response.(*send.Response)
+		sendResponse, ok := response.(*send.SendAck)
 		assert.True(t, ok)
 		t.Logf("resp: %v, cost: %d ms", sendResponse, cost)
 		time.Sleep(time.Millisecond * 10)
@@ -73,13 +73,13 @@ func writeMessage(i int, t *testing.T) {
 	response, err2 := client.WriteMessage(context.Background(), request)
 	cost := time.Since(now).Milliseconds()
 	assert.Nil(t, err2)
-	sendResponse, ok := response.(*send.Response)
+	sendResponse, ok := response.(*send.SendAck)
 	assert.True(t, ok)
 	t.Logf("resp: %v, cost: %d ms", sendResponse, cost)
 }
 
-func buildMsg(i int, from int64) *send.Request {
-	return send.NewRequest(from, 2, 1, &pb.Payload{
+func buildMsg(i int, from int64) *send.SendMsg {
+	return send.NewSendMsg(from, 2, 1, &pb.Payload{
 		PayloadType: pb.PayloadType_TEXT,
 		Content: &pb.Payload_Text{
 			Text: &pb.TextPayload{Content: fmt.Sprintf("hello world %d", i)},

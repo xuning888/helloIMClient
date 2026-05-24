@@ -14,7 +14,6 @@ import (
 	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
 	"github.com/xuning888/helloIMClient/pkg"
 	"github.com/xuning888/helloIMClient/pkg/logger"
-	"github.com/xuning888/helloIMClient/protocol"
 	"github.com/xuning888/helloIMClient/protocol/send"
 )
 
@@ -132,14 +131,18 @@ func (m chatModel) sendMessage() *sqllite.ChatMessage {
 	}
 	chat := m.cache.GetChat()
 	p := payload.NewTextMessage(value, false, nil)
-	request := send.NewRequest(m.sdk.GetUID(), chat.ChatId, chat.ChatType, p, 0, 0)
-	response, err := m.sdk.SendMessage(context.Background(), request)
+	request := send.NewSendMsg(m.sdk.GetUID(), chat.ChatId, chat.ChatType, p, 0, 0)
+	ack, err := m.sdk.SendMessage(context.Background(), request)
 	if err != nil {
 		logger.Errorf("消息发送失败, error: %v", err)
 		m.textarea.SetValue("")
 		return nil
 	}
-	msg := m.saveSentMessage(request, response)
+	sendAck, ok := ack.(*send.SendAck)
+	if !ok {
+		return nil
+	}
+	msg := m.saveSentMessage(request, sendAck)
 	return msg
 }
 
@@ -151,14 +154,13 @@ func (m *chatModel) updateSize(width, height int) {
 	m.textarea.SetWidth(width - 2)
 }
 
-func (m chatModel) saveSentMessage(request *send.Request, response protocol.Response) *sqllite.ChatMessage {
+func (m chatModel) saveSentMessage(req *send.SendMsg, ack *send.SendAck) *sqllite.ChatMessage {
 	chat := m.cache.GetChat()
 	uid := m.sdk.GetUID()
-	p := request.Payload
-	content, contentType := payload.ExtractContent(p)
-	message := sqllite.NewMessage(chat.ChatType, chat.ChatId, response.MsgId(), uid, chat.ChatId,
-		request.FromUserType, request.ToUserType, response.MsgSeq(), content, contentType, request.CmdId(),
-		request.SendTimestamp, 0, response.ServerSeq())
+	content, contentType := payload.ExtractContent(req.Payload)
+	message := sqllite.NewMessage(chat.ChatType, chat.ChatId, ack.MsgId(), uid, chat.ChatId,
+		req.FromUserType, req.ToUserType, ack.MsgSeq(), content, contentType, req.CmdId(),
+		req.SendTimestamp, 0, ack.ServerSeq())
 	if err := m.sdk.Storage().Messages.Save(context.Background(), message); err != nil {
 		logger.Errorf("saveSentMessage error: %v", err)
 	}

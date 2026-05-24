@@ -56,7 +56,7 @@ func (t *Transport) roundTrip(ctx context.Context, item *syncItem) error {
 	return nil
 }
 
-func (t *Transport) roundTripWithSeq(ctx context.Context, seq int32, request protocol.Request) error {
+func (t *Transport) roundTripWithSeq(ctx context.Context, seq int32, request protocol.Message) error {
 	if atomic.LoadInt32(&t.closed) == 1 {
 		return ErrClosed
 	}

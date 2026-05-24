@@ -42,8 +42,8 @@ func (d *dispatcher) dispatch(result *transport.Result) {
 	}
 }
 
-func (d *dispatcher) handlePush(resp protocol.Response) {
-	response, ok := resp.(*push.Response)
+func (d *dispatcher) handlePush(resp protocol.Message) {
+	response, ok := resp.(*push.RecvMsg)
 	if !ok {
 		return
 	}

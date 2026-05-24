@@ -10,8 +10,6 @@ import (
 	"github.com/xuning888/helloIMClient/internal/http"
 	"github.com/xuning888/helloIMClient/pkg/logger"
 	"github.com/xuning888/helloIMClient/protocol"
-	"github.com/xuning888/helloIMClient/protocol/echo"
-	"github.com/xuning888/helloIMClient/protocol/heartbeat"
 )
 
 var (
@@ -19,11 +17,11 @@ var (
 )
 
 type Result struct {
-	resp protocol.Response
+	resp protocol.Message
 	err  error
 }
 
-func (r *Result) GetResp() protocol.Response {
+func (r *Result) GetResp() protocol.Message {
 	return r.resp
 }
 
@@ -62,13 +60,13 @@ func (imCli *ImClient) Start() error {
 		return err
 	}
 	// 发一个echo, 确认网络通畅
-	if _, err := imCli.WriteMessage(context.Background(), echo.NewRequest()); err != nil {
+	if _, err := imCli.WriteMessage(context.Background(), NewEchoRequest()); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (imCli *ImClient) WriteMessage(ctx context.Context, request protocol.Request) (protocol.Response, error) {
+func (imCli *ImClient) WriteMessage(ctx context.Context, request protocol.Message) (protocol.Message, error) {
 	message, err := imCli.sender.writeMessage(ctx, request)
 	if err != nil {
 		return nil, err
@@ -76,7 +74,7 @@ func (imCli *ImClient) WriteMessage(ctx context.Context, request protocol.Reques
 	return message, nil
 }
 
-func (imCli *ImClient) WriteMessageWithSeq(ctx context.Context, seq int32, request protocol.Request) error {
+func (imCli *ImClient) WriteMessageWithSeq(ctx context.Context, seq int32, request protocol.Message) error {
 	return imCli.sender.writeMessageWihSeq(ctx, seq, request)
 }
 
@@ -150,7 +148,7 @@ func (imCli *ImClient) fetchIpList() error {
 }
 
 func (imCli *ImClient) heartBeat() error {
-	request := heartbeat.NewRequest()
+	request := NewHeartbeatRequest()
 	if err := imCli.WriteMessageWithSeq(context.Background(), 0, request); err != nil {
 		logger.Errorf("heartBeat error: %v\n", err)
 		return err

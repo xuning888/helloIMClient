@@ -85,7 +85,7 @@ func (c *Client) State() ConnState {
 }
 
 // SendMessage 发送上行消息并同步等待 ACK 响应
-func (c *Client) SendMessage(ctx context.Context, req protocol.Request) (protocol.Response, error) {
+func (c *Client) SendMessage(ctx context.Context, req protocol.Message) (protocol.Message, error) {
 	resp, err := c.connManager.transport.WriteMessage(ctx, req)
 	if err != nil {
 		return nil, err
@@ -95,7 +95,7 @@ func (c *Client) SendMessage(ctx context.Context, req protocol.Request) (protoco
 }
 
 // SendMessageWithSeq 发送单向消息（不等待 ACK）
-func (c *Client) SendMessageWithSeq(ctx context.Context, seq int32, req protocol.Request) error {
+func (c *Client) SendMessageWithSeq(ctx context.Context, seq int32, req protocol.Message) error {
 	return c.connManager.transport.WriteMessageWithSeq(ctx, seq, req)
 }
 
