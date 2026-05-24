@@ -5,12 +5,12 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/xuning888/helloIMClient/im"
-	sqllite2 "github.com/xuning888/helloIMClient/im/dal/sqllite"
+	sqllite "github.com/xuning888/helloIMClient/im/dal/sqllite"
 )
 
 type chatListUpdatedMsg struct {
-	lastMessages map[string]*sqllite2.ChatMessage
-	chats        []*sqllite2.ImChat
+	lastMessages map[string]*sqllite.ChatMessage
+	chats        []*sqllite.ImChat
 	err          error
 }
 
@@ -28,10 +28,10 @@ func FetchUpdatedChatListCmd(sdk *im.Client) tea.Cmd {
 }
 
 type selectChatMsg struct {
-	chat *sqllite2.ImChat
+	chat *sqllite.ImChat
 }
 
-func fetchChatModel(chat *sqllite2.ImChat) tea.Cmd {
+func fetchChatModel(chat *sqllite.ImChat) tea.Cmd {
 	return func() tea.Msg {
 		return selectChatMsg{
 			chat: chat,
@@ -49,11 +49,11 @@ func FetchBackToListMsg() tea.Cmd {
 
 type updateMessage struct {
 	chatId int64
-	msgs   []*sqllite2.ChatMessage
+	msgs   []*sqllite.ChatMessage
 }
 
 // FetchUpdateMessage 创建更新消息的命令
-func FetchUpdateMessage(chatId int64, msg []*sqllite2.ChatMessage) tea.Cmd {
+func FetchUpdateMessage(chatId int64, msg []*sqllite.ChatMessage) tea.Cmd {
 	return func() tea.Msg {
 		return updateMessage{
 			chatId: chatId,

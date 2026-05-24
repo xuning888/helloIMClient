@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/xuning888/helloIMClient/conf"
-	sqllite2 "github.com/xuning888/helloIMClient/im/dal/sqllite"
+	"github.com/xuning888/helloIMClient/im/dal/sqllite"
 	"github.com/xuning888/helloIMClient/im/http"
 	"github.com/xuning888/helloIMClient/pkg/logger"
 )
@@ -15,16 +15,16 @@ const maxCachedMessages = 30 // 最大缓存消息数
 
 type MsgCache struct {
 	mux     sync.RWMutex
-	chat    *sqllite2.ImChat
-	message []*sqllite2.ChatMessage
+	chat    *sqllite.ImChat
+	message []*sqllite.ChatMessage
 	dup     map[int64]struct{}
 }
 
-func NewMsgCache(chat *sqllite2.ImChat) *MsgCache {
+func NewMsgCache(chat *sqllite.ImChat) *MsgCache {
 	cache := &MsgCache{
 		mux:     sync.RWMutex{},
 		chat:    chat,
-		message: make([]*sqllite2.ChatMessage, 0, maxCachedMessages),
+		message: make([]*sqllite.ChatMessage, 0, maxCachedMessages),
 		dup:     map[int64]struct{}{},
 	}
 	cache.loadInitialMessages()
@@ -37,7 +37,7 @@ func (m *MsgCache) loadInitialMessages() {
 	ctx := context.Background()
 	chatId, chatType := m.chat.ChatId, m.chat.ChatType
 	// 先从本地查询近期的消息, 如果查询不到就从远程拉
-	messages, err := sqllite2.GetRecentMessage(ctx, chatId, chatType, maxCachedMessages)
+	messages, err := sqllite.GetRecentMessage(ctx, chatId, chatType, maxCachedMessages)
 	if err != nil || len(messages) == 0 {
 		if err != nil {
 			logger.Errorf("GetRecentMessage chatId: %v, chatType: %v, error: %v", chatId, chatType, err)
@@ -57,14 +57,14 @@ func (m *MsgCache) loadInitialMessages() {
 			if lastMessage, err := LastMessageFromRemote(ctx, chatId, chatType); err != nil {
 				logger.Errorf("loadInitialMessages.LastMessageFromRemote chatId: %d, chatType: %v  error: %v", chatId, chatType, err)
 			} else {
-				m.addMessages([]*sqllite2.ChatMessage{lastMessage})
+				m.addMessages([]*sqllite.ChatMessage{lastMessage})
 			}
 		}
 	}
 	m.checkMissingMessageAndSort(ctx)
 }
 
-func (m *MsgCache) UpdateMessage(msgs []*sqllite2.ChatMessage) {
+func (m *MsgCache) UpdateMessage(msgs []*sqllite.ChatMessage) {
 	m.mux.Lock()
 	defer m.mux.Unlock()
 	ctx := context.Background()
@@ -73,7 +73,7 @@ func (m *MsgCache) UpdateMessage(msgs []*sqllite2.ChatMessage) {
 		if err != nil {
 			logger.Errorf("UpdateMessage.GetLastMessage error: %v", err)
 		} else {
-			m.addMessages([]*sqllite2.ChatMessage{lastMessage})
+			m.addMessages([]*sqllite.ChatMessage{lastMessage})
 		}
 		m.checkMissingMessageAndSort(ctx)
 		return
@@ -112,22 +112,22 @@ func (m *MsgCache) sortMessage() {
 	sortMessages(m.message)
 }
 
-func (m *MsgCache) GetMessages() []*sqllite2.ChatMessage {
+func (m *MsgCache) GetMessages() []*sqllite.ChatMessage {
 	m.mux.RLock()
 	defer m.mux.RUnlock()
 
-	messages := make([]*sqllite2.ChatMessage, len(m.message))
+	messages := make([]*sqllite.ChatMessage, len(m.message))
 	copy(messages, m.message)
 	return messages
 }
 
-func (m *MsgCache) GetChat() *sqllite2.ImChat {
+func (m *MsgCache) GetChat() *sqllite.ImChat {
 	m.mux.RLock()
 	defer m.mux.RUnlock()
 	return m.chat
 }
 
-func (m *MsgCache) addMessages(messages []*sqllite2.ChatMessage) {
+func (m *MsgCache) addMessages(messages []*sqllite.ChatMessage) {
 	if len(messages) == 0 {
 		return
 	}
@@ -137,14 +137,14 @@ func (m *MsgCache) addMessages(messages []*sqllite2.ChatMessage) {
 			continue
 		}
 		m.dup[msg.MsgID] = struct{}{}
-		if err := sqllite2.SaveOrUpdateMessage(ctx, msg); err != nil {
+		if err := sqllite.SaveOrUpdateMessage(ctx, msg); err != nil {
 			logger.Errorf("SaveOrUpdateMessage error: %v", err)
 		}
 		m.message = append(m.message, msg)
 	}
 }
 
-func sortMessages(messages []*sqllite2.ChatMessage) {
+func sortMessages(messages []*sqllite.ChatMessage) {
 	if len(messages) == 0 {
 		return
 	}
@@ -153,13 +153,13 @@ func sortMessages(messages []*sqllite2.ChatMessage) {
 	})
 }
 
-func (m *MsgCache) truncateMessages(messages []*sqllite2.ChatMessage) []*sqllite2.ChatMessage {
+func (m *MsgCache) truncateMessages(messages []*sqllite.ChatMessage) []*sqllite.ChatMessage {
 	if len(messages) <= maxCachedMessages {
 		return messages
 	}
 	// 返回最新的 maxCachedMessages 条消息
 	startIndex := len(messages) - maxCachedMessages
-	msgs := make([]*sqllite2.ChatMessage, maxCachedMessages)
+	msgs := make([]*sqllite.ChatMessage, maxCachedMessages)
 	copy(msgs, messages[startIndex:])
 	for _, msg := range messages[:startIndex] {
 		delete(m.dup, msg.MsgID)

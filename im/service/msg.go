@@ -5,13 +5,13 @@ import (
 	"sort"
 
 	"github.com/xuning888/helloIMClient/conf"
-	sqllite2 "github.com/xuning888/helloIMClient/im/dal/sqllite"
+	"github.com/xuning888/helloIMClient/im/dal/sqllite"
 	"github.com/xuning888/helloIMClient/im/http"
 	"github.com/xuning888/helloIMClient/pkg/logger"
 )
 
-func LastMessage(ctx context.Context, chatId int64, chatType int32) (*sqllite2.ChatMessage, error) {
-	lastMsg, err := sqllite2.GetLastMessage(ctx, chatId)
+func LastMessage(ctx context.Context, chatId int64, chatType int32) (*sqllite.ChatMessage, error) {
+	lastMsg, err := sqllite.GetLastMessage(ctx, chatId)
 	if err == nil {
 		logger.Infof("LastMessage from DB chatId: %v, chatType: %v", chatId, chatType)
 		return lastMsg, nil
@@ -24,14 +24,14 @@ func LastMessage(ctx context.Context, chatId int64, chatType int32) (*sqllite2.C
 		return nil, err2
 	} else {
 		// 保存消息到数据库
-		if err3 := sqllite2.SaveOrUpdateMessage(ctx, lastMsg); err3 != nil {
+		if err3 := sqllite.SaveOrUpdateMessage(ctx, lastMsg); err3 != nil {
 			logger.Errorf("SaveOrUpdateMessage error: %v", err3)
 		}
 		return lastMsg, nil
 	}
 }
 
-func LastMessageFromRemote(ctx context.Context, chatId int64, chatType int32) (*sqllite2.ChatMessage, error) {
+func LastMessageFromRemote(ctx context.Context, chatId int64, chatType int32) (*sqllite.ChatMessage, error) {
 	lastMessage, err := http.LastMessage(conf.UserId, chatId, chatType)
 	if err != nil {
 		return nil, err
@@ -39,11 +39,11 @@ func LastMessageFromRemote(ctx context.Context, chatId int64, chatType int32) (*
 	return lastMessage, nil
 }
 
-func BatchLastMessage(ctx context.Context, chats []*sqllite2.ImChat) map[string]*sqllite2.ChatMessage {
+func BatchLastMessage(ctx context.Context, chats []*sqllite.ImChat) map[string]*sqllite.ChatMessage {
 	if len(chats) == 0 {
-		return make(map[string]*sqllite2.ChatMessage)
+		return make(map[string]*sqllite.ChatMessage)
 	}
-	result := make(map[string]*sqllite2.ChatMessage)
+	result := make(map[string]*sqllite.ChatMessage)
 	for _, chat := range chats {
 		// 拉取最后一条消息
 		lastMsg, err := LastMessage(ctx, chat.ChatId, chat.ChatType)
@@ -55,11 +55,11 @@ func BatchLastMessage(ctx context.Context, chats []*sqllite2.ImChat) map[string]
 	return result
 }
 
-func BatchLastMessageFromRemote(ctx context.Context, chats []*sqllite2.ImChat) map[string]*sqllite2.ChatMessage {
+func BatchLastMessageFromRemote(ctx context.Context, chats []*sqllite.ImChat) map[string]*sqllite.ChatMessage {
 	if len(chats) == 0 {
-		return make(map[string]*sqllite2.ChatMessage)
+		return make(map[string]*sqllite.ChatMessage)
 	}
-	result := make(map[string]*sqllite2.ChatMessage)
+	result := make(map[string]*sqllite.ChatMessage)
 	for _, chat := range chats {
 		// 拉取最后一条消息
 		lastMsg, err := LastMessageFromRemote(ctx, chat.ChatId, chat.ChatType)
@@ -72,8 +72,8 @@ func BatchLastMessageFromRemote(ctx context.Context, chats []*sqllite2.ImChat) m
 }
 
 func PullOfflineMsg(ctx context.Context,
-	chatId int64, chatType int32, minServerSeq, maxServerSeq int64) ([]*sqllite2.ChatMessage, error) {
-	messages, err := sqllite2.GetMessagesBySeq(ctx, chatId, minServerSeq, maxServerSeq)
+	chatId int64, chatType int32, minServerSeq, maxServerSeq int64) ([]*sqllite.ChatMessage, error) {
+	messages, err := sqllite.GetMessagesBySeq(ctx, chatId, minServerSeq, maxServerSeq)
 	if err != nil || len(messages) == 0 {
 		logger.Errorf("PullOfflineMsg.GetMessages chatId: %v, minServerSeq: %d maxServerSeq: %d, error: %v",
 			chatId, minServerSeq, maxServerSeq, err)
@@ -105,7 +105,7 @@ func PullOfflineMsg(ctx context.Context,
 	}
 }
 
-func checkMissingMessage(sortedMessage []*sqllite2.ChatMessage) (minServerSeq, maxServerSeq int64) {
+func checkMissingMessage(sortedMessage []*sqllite.ChatMessage) (minServerSeq, maxServerSeq int64) {
 	if len(sortedMessage) == 0 {
 		return
 	}

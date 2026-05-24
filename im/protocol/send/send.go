@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/xuning888/helloIMClient/im/proto"
-	protocol "github.com/xuning888/helloIMClient/im/protocol"
+	"github.com/xuning888/helloIMClient/im/protocol"
 	"google.golang.org/protobuf/proto"
 )
 
