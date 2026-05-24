@@ -8,7 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
+	"github.com/xuning888/helloIMClient/im/dal/sqllite"
 	"github.com/xuning888/helloIMClient/pkg/logger"
 )
 

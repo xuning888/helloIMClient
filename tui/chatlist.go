@@ -8,7 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/xuning888/helloIMClient/im"
-	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
+	sqllite2 "github.com/xuning888/helloIMClient/im/dal/sqllite"
 	"github.com/xuning888/helloIMClient/pkg"
 	"github.com/xuning888/helloIMClient/pkg/logger"
 )
@@ -18,8 +18,8 @@ var _ tea.Model = &chatListModel{}
 type chatListModel struct {
 	sdk          *im.Client
 	cursor       int
-	chats        []*sqllite.ImChat
-	lastMessages map[string]*sqllite.ChatMessage
+	chats        []*sqllite2.ImChat
+	lastMessages map[string]*sqllite2.ChatMessage
 	width        int
 	height       int
 }
@@ -29,7 +29,7 @@ func initChatListModel(sdk *im.Client) chatListModel {
 	chats, err := sdk.Storage().Chats.ListFromRemote(ctx)
 	if err != nil {
 		logger.Errorf("Error loading chats: %v", err)
-		chats = make([]*sqllite.ImChat, 0)
+		chats = make([]*sqllite2.ImChat, 0)
 	}
 	lastMessages := sdk.Storage().Messages.BatchLastMessageFromRemote(ctx, chats)
 	return chatListModel{

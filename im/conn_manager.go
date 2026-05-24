@@ -6,11 +6,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/xuning888/helloIMClient/im/transport"
 	"github.com/xuning888/helloIMClient/pkg/logger"
-	"github.com/xuning888/helloIMClient/transport"
 )
 
-// ConnState 连接状态
+// ConnState SDK 层连接状态
 type ConnState int32
 
 const (
@@ -21,13 +21,13 @@ const (
 )
 
 type connManager struct {
-	transport *transport.ImClient
+	transport *transport.Client
 	events    *callbackRegistry
 	state     atomic.Int32
 	closeOnce sync.Once
 }
 
-func newConnManager(tr *transport.ImClient, events *callbackRegistry) *connManager {
+func newConnManager(tr *transport.Client, events *callbackRegistry) *connManager {
 	return &connManager{
 		transport: tr,
 		events:    events,
@@ -38,7 +38,7 @@ func (c *connManager) Connect(ctx context.Context) error {
 	c.state.Store(int32(StateConnecting))
 	c.events.fire(Event{Type: EventConnecting})
 
-	if err := c.transport.Start(); err != nil {
+	if err := c.transport.Connect(ctx); err != nil {
 		c.state.Store(int32(StateDisconnected))
 		c.events.fire(Event{Type: EventDisconnected})
 		return err

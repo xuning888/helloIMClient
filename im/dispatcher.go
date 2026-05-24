@@ -4,13 +4,12 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/xuning888/helloIMClient/im/dal/sqllite"
 	"github.com/xuning888/helloIMClient/im/payload"
-	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
-	pb "github.com/xuning888/helloIMClient/internal/proto"
+	pb "github.com/xuning888/helloIMClient/im/proto"
+	"github.com/xuning888/helloIMClient/im/protocol"
+	"github.com/xuning888/helloIMClient/im/protocol/push"
 	"github.com/xuning888/helloIMClient/pkg/logger"
-	"github.com/xuning888/helloIMClient/protocol"
-	"github.com/xuning888/helloIMClient/protocol/push"
-	"github.com/xuning888/helloIMClient/transport"
 )
 
 type dispatcher struct {
@@ -25,20 +24,15 @@ func newDispatcher(store *Store, events *callbackRegistry) *dispatcher {
 	}
 }
 
-func (d *dispatcher) dispatch(result *transport.Result) {
-	resp := result.GetResp()
-	if resp == nil {
-		if err := result.GetErr(); err != nil {
-			d.events.fire(Event{Type: EventError, Data: err})
-		}
+func (d *dispatcher) dispatch(msg protocol.Message) {
+	if msg == nil {
 		return
 	}
-	cmdId := resp.CmdId()
-	switch cmdId {
+	switch msg.CmdId() {
 	case int32(pb.CmdId_CMD_ID_PUSH):
-		d.handlePush(resp)
+		d.handlePush(msg)
 	default:
-		logger.Infof("dispatcher: unhandled push message, cmdId: %d", cmdId)
+		logger.Infof("dispatcher: unhandled push message, cmdId: %d", msg.CmdId())
 	}
 }
 

@@ -3,7 +3,7 @@ package im
 import (
 	"context"
 
-	"github.com/xuning888/helloIMClient/protocol"
+	"github.com/xuning888/helloIMClient/im/protocol"
 )
 
 // msgManager 消息管理器

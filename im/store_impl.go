@@ -3,8 +3,8 @@ package im
 import (
 	"context"
 
-	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
-	"github.com/xuning888/helloIMClient/internal/service"
+	sqllite2 "github.com/xuning888/helloIMClient/im/dal/sqllite"
+	service2 "github.com/xuning888/helloIMClient/im/service"
 )
 
 func newStore() *Store {
@@ -19,25 +19,25 @@ func newStore() *Store {
 
 type chatStoreImpl struct{}
 
-func (s *chatStoreImpl) List(ctx context.Context) ([]*sqllite.ImChat, error) {
-	return service.GetAllChat(ctx)
+func (s *chatStoreImpl) List(ctx context.Context) ([]*sqllite2.ImChat, error) {
+	return service2.GetAllChat(ctx)
 }
 
-func (s *chatStoreImpl) ListFromRemote(ctx context.Context) ([]*sqllite.ImChat, error) {
-	return service.GetAllChatFromRemote(ctx)
+func (s *chatStoreImpl) ListFromRemote(ctx context.Context) ([]*sqllite2.ImChat, error) {
+	return service2.GetAllChatFromRemote(ctx)
 }
 
-func (s *chatStoreImpl) GetOrCreate(ctx context.Context, chatID int64, chatType int32) (*sqllite.ImChat, error) {
-	return service.GetOrCreateChat(ctx, chatID, chatType)
+func (s *chatStoreImpl) GetOrCreate(ctx context.Context, chatID int64, chatType int32) (*sqllite2.ImChat, error) {
+	return service2.GetOrCreateChat(ctx, chatID, chatType)
 }
 
 func (s *chatStoreImpl) SyncFromRemote(ctx context.Context) error {
-	service.UpdateChatsFromRemote()
+	service2.UpdateChatsFromRemote()
 	return nil
 }
 
 func (s *chatStoreImpl) UpdateVersion(ctx context.Context, chatID int64, chatType int32) error {
-	service.UpdateChatVersion(chatID, chatType)
+	service2.UpdateChatVersion(chatID, chatType)
 	return nil
 }
 
@@ -45,47 +45,47 @@ func (s *chatStoreImpl) UpdateVersion(ctx context.Context, chatID int64, chatTyp
 
 type messageStoreImpl struct{}
 
-func (s *messageStoreImpl) Recent(ctx context.Context, chatID int64, chatType int32, limit int) ([]*sqllite.ChatMessage, error) {
-	return sqllite.GetRecentMessage(ctx, chatID, chatType, limit)
+func (s *messageStoreImpl) Recent(ctx context.Context, chatID int64, chatType int32, limit int) ([]*sqllite2.ChatMessage, error) {
+	return sqllite2.GetRecentMessage(ctx, chatID, chatType, limit)
 }
 
-func (s *messageStoreImpl) Save(ctx context.Context, msg *sqllite.ChatMessage) error {
-	return sqllite.SaveOrUpdateMessage(ctx, msg)
+func (s *messageStoreImpl) Save(ctx context.Context, msg *sqllite2.ChatMessage) error {
+	return sqllite2.SaveOrUpdateMessage(ctx, msg)
 }
 
-func (s *messageStoreImpl) GetByServerSeq(ctx context.Context, chatID int64, minSeq, maxSeq int64) ([]*sqllite.ChatMessage, error) {
-	return sqllite.GetMessagesBySeq(ctx, chatID, minSeq, maxSeq)
+func (s *messageStoreImpl) GetByServerSeq(ctx context.Context, chatID int64, minSeq, maxSeq int64) ([]*sqllite2.ChatMessage, error) {
+	return sqllite2.GetMessagesBySeq(ctx, chatID, minSeq, maxSeq)
 }
 
-func (s *messageStoreImpl) LastMessage(ctx context.Context, chatID int64, chatType int32) (*sqllite.ChatMessage, error) {
-	return service.LastMessage(ctx, chatID, chatType)
+func (s *messageStoreImpl) LastMessage(ctx context.Context, chatID int64, chatType int32) (*sqllite2.ChatMessage, error) {
+	return service2.LastMessage(ctx, chatID, chatType)
 }
 
-func (s *messageStoreImpl) BatchLastMessage(ctx context.Context, chats []*sqllite.ImChat) map[string]*sqllite.ChatMessage {
-	return service.BatchLastMessage(ctx, chats)
+func (s *messageStoreImpl) BatchLastMessage(ctx context.Context, chats []*sqllite2.ImChat) map[string]*sqllite2.ChatMessage {
+	return service2.BatchLastMessage(ctx, chats)
 }
 
-func (s *messageStoreImpl) BatchLastMessageFromRemote(ctx context.Context, chats []*sqllite.ImChat) map[string]*sqllite.ChatMessage {
-	return service.BatchLastMessageFromRemote(ctx, chats)
+func (s *messageStoreImpl) BatchLastMessageFromRemote(ctx context.Context, chats []*sqllite2.ImChat) map[string]*sqllite2.ChatMessage {
+	return service2.BatchLastMessageFromRemote(ctx, chats)
 }
 
-func (s *messageStoreImpl) NewCache(chat *sqllite.ImChat) MsgCache {
-	return service.NewMsgCache(chat)
+func (s *messageStoreImpl) NewCache(chat *sqllite2.ImChat) MsgCache {
+	return service2.NewMsgCache(chat)
 }
 
 // ---- UserStore ----
 
 type userStoreImpl struct{}
 
-func (s *userStoreImpl) Get(ctx context.Context, userID int64) (*sqllite.ImUser, error) {
-	return service.GetUserById(ctx, userID)
+func (s *userStoreImpl) Get(ctx context.Context, userID int64) (*sqllite2.ImUser, error) {
+	return service2.GetUserById(ctx, userID)
 }
 
-func (s *userStoreImpl) Search(ctx context.Context, keyword string) ([]*sqllite.ImUser, error) {
-	return sqllite.SearchUser(ctx, keyword)
+func (s *userStoreImpl) Search(ctx context.Context, keyword string) ([]*sqllite2.ImUser, error) {
+	return sqllite2.SearchUser(ctx, keyword)
 }
 
 func (s *userStoreImpl) Refresh(ctx context.Context) error {
-	service.UpdateUsers()
+	service2.UpdateUsers()
 	return nil
 }

@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/xuning888/helloIMClient/conf"
-	"github.com/xuning888/helloIMClient/internal/dal"
-	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
-	"github.com/xuning888/helloIMClient/internal/http"
-	"github.com/xuning888/helloIMClient/protocol"
-	"github.com/xuning888/helloIMClient/transport"
+	"github.com/xuning888/helloIMClient/im/dal"
+	"github.com/xuning888/helloIMClient/im/dal/sqllite"
+	http2 "github.com/xuning888/helloIMClient/im/http"
+	"github.com/xuning888/helloIMClient/im/protocol"
+	"github.com/xuning888/helloIMClient/im/transport"
 )
 
 // Client IM SDK 客户端，SDK 的唯一入口
@@ -33,7 +33,7 @@ func New(addr string, opts ...Option) (*Client, error) {
 	conf.ServerUrl = addr
 
 	// 初始化 HTTP 客户端
-	http.Init(addr, options.ConnectTimeout)
+	http2.Init(addr, options.ConnectTimeout)
 
 	// 初始化 SQLite
 	if err := dal.Init(); err != nil {
@@ -57,10 +57,7 @@ func New(addr string, opts ...Option) (*Client, error) {
 	dispatcher := newDispatcher(store, events)
 
 	// 创建 transport
-	tr, err := transport.NewImClient(sqllite.GetSeq, dispatcher.dispatch)
-	if err != nil {
-		return nil, err
-	}
+	tr := transport.NewClient(dispatcher.dispatch, &defaultAddrProvider{}, sqllite.GetSeq)
 
 	// 创建子管理器
 	cli.msgManager = newMsgManager(cli)
@@ -84,19 +81,14 @@ func (c *Client) State() ConnState {
 	return c.connManager.State()
 }
 
-// SendMessage 发送上行消息并同步等待 ACK 响应
-func (c *Client) SendMessage(ctx context.Context, req protocol.Message) (protocol.Message, error) {
-	resp, err := c.connManager.transport.WriteMessage(ctx, req)
+// SendMessage 发送上行消息并同步等待 ACK
+func (c *Client) SendMessage(ctx context.Context, msg protocol.Message) (protocol.Message, error) {
+	ack, err := c.connManager.transport.Send(ctx, msg)
 	if err != nil {
 		return nil, err
 	}
-	c.events.fire(Event{Type: EventMessageSent, Data: resp})
-	return resp, nil
-}
-
-// SendMessageWithSeq 发送单向消息（不等待 ACK）
-func (c *Client) SendMessageWithSeq(ctx context.Context, seq int32, req protocol.Message) error {
-	return c.connManager.transport.WriteMessageWithSeq(ctx, seq, req)
+	c.events.fire(Event{Type: EventMessageSent, Data: ack})
+	return ack, nil
 }
 
 // Storage 获取存储管理器
@@ -112,4 +104,11 @@ func (c *Client) OnEvent(cb EventCallback) func() {
 // GetUID 获取当前用户 ID
 func (c *Client) GetUID() int64 {
 	return c.opts.UID
+}
+
+// defaultAddrProvider 默认地址提供者
+type defaultAddrProvider struct{}
+
+func (p *defaultAddrProvider) GetAddr(ctx context.Context) ([]string, error) {
+	return http2.IpList(ctx)
 }

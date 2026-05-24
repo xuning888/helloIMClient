@@ -10,11 +10,11 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/xuning888/helloIMClient/im"
+	sqllite2 "github.com/xuning888/helloIMClient/im/dal/sqllite"
 	"github.com/xuning888/helloIMClient/im/payload"
-	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
+	"github.com/xuning888/helloIMClient/im/protocol/send"
 	"github.com/xuning888/helloIMClient/pkg"
 	"github.com/xuning888/helloIMClient/pkg/logger"
-	"github.com/xuning888/helloIMClient/protocol/send"
 )
 
 var _ tea.Model = &chatModel{}
@@ -28,7 +28,7 @@ type chatModel struct {
 	height   int
 }
 
-func initChatModel(chat *sqllite.ImChat, sdk *im.Client) *chatModel {
+func initChatModel(chat *sqllite2.ImChat, sdk *im.Client) *chatModel {
 	ta := textarea.New()
 	ta.Placeholder = "输入消息..."
 	ta.Focus()
@@ -61,7 +61,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, FetchBackToListMsg(), FetchUpdatedChatListCmd(m.sdk))
 			return m, tea.Batch(cmds...)
 		case tea.KeyEnter:
-			var message *sqllite.ChatMessage = nil
+			var message *sqllite2.ChatMessage = nil
 			if m.textarea.Focused() {
 				message = m.sendMessage()
 				m.textarea.Reset()
@@ -70,7 +70,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if message != nil {
 				cmds = append(cmds, FetchUpdatedChatListCmd(m.sdk))
 				chatId := m.cache.GetChat().ChatId
-				cmds = append(cmds, FetchUpdateMessage(chatId, []*sqllite.ChatMessage{message}))
+				cmds = append(cmds, FetchUpdateMessage(chatId, []*sqllite2.ChatMessage{message}))
 			}
 		}
 	case updateMessage:
@@ -124,7 +124,7 @@ func (m chatModel) View() string {
 	return lipgloss.JoinVertical(lipgloss.Left, title, messageArea, inputArea)
 }
 
-func (m chatModel) sendMessage() *sqllite.ChatMessage {
+func (m chatModel) sendMessage() *sqllite2.ChatMessage {
 	value := m.textarea.Value()
 	if value == "" {
 		return nil
@@ -154,11 +154,11 @@ func (m *chatModel) updateSize(width, height int) {
 	m.textarea.SetWidth(width - 2)
 }
 
-func (m chatModel) saveSentMessage(req *send.SendMsg, ack *send.SendAck) *sqllite.ChatMessage {
+func (m chatModel) saveSentMessage(req *send.SendMsg, ack *send.SendAck) *sqllite2.ChatMessage {
 	chat := m.cache.GetChat()
 	uid := m.sdk.GetUID()
 	content, contentType := payload.ExtractContent(req.Payload)
-	message := sqllite.NewMessage(chat.ChatType, chat.ChatId, ack.MsgId(), uid, chat.ChatId,
+	message := sqllite2.NewMessage(chat.ChatType, chat.ChatId, ack.MsgId(), uid, chat.ChatId,
 		req.FromUserType, req.ToUserType, ack.MsgSeq(), content, contentType, req.CmdId(),
 		req.SendTimestamp, 0, ack.ServerSeq())
 	if err := m.sdk.Storage().Messages.Save(context.Background(), message); err != nil {

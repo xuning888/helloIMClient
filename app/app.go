@@ -6,7 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/xuning888/helloIMClient/im"
-	"github.com/xuning888/helloIMClient/internal/dal/sqllite"
+	"github.com/xuning888/helloIMClient/im/dal/sqllite"
 	"github.com/xuning888/helloIMClient/pkg/logger"
 	"github.com/xuning888/helloIMClient/tui"
 )
