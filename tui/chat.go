@@ -13,7 +13,6 @@ import (
 	"github.com/xuning888/helloIMClient/im/dbhelper"
 	"github.com/xuning888/helloIMClient/im/payload"
 	"github.com/xuning888/helloIMClient/im/protocol/send"
-	"github.com/xuning888/helloIMClient/im/store"
 	"github.com/xuning888/helloIMClient/pkg"
 	"github.com/xuning888/helloIMClient/pkg/logger"
 )
@@ -21,7 +20,8 @@ import (
 var _ tea.Model = &chatModel{}
 
 type chatModel struct {
-	cache    store.MsgCache
+	chat     *dbhelper.ImChat
+	messages []*dbhelper.ChatMessage
 	sdk      *im.Client
 	viewport viewport.Model
 	textarea textarea.Model
@@ -40,9 +40,10 @@ func initChatModel(chat *dbhelper.ImChat, sdk *im.Client) *chatModel {
 	vp := viewport.New(50, 10)
 	vp.Style = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(borderColor)
 
-	cache := sdk.Storage().Messages.NewCache(chat)
+	messages := sdk.LoadMessages(chat)
 	return &chatModel{
-		cache:    cache,
+		chat:     chat,
+		messages: messages,
 		sdk:      sdk,
 		viewport: vp,
 		textarea: ta,
@@ -70,13 +71,11 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			if message != nil {
 				cmds = append(cmds, FetchUpdatedChatListCmd(m.sdk))
-				chatId := m.cache.GetChat().ChatId
-				cmds = append(cmds, FetchUpdateMessage(chatId, []*dbhelper.ChatMessage{message}))
 			}
 		}
 	case updateMessage:
-		if m.cache.GetChat().ChatId == msg.chatId {
-			m.cache.UpdateMessage(msg.msgs)
+		if m.chat.ChatId == msg.chatId {
+			m.messages = msg.msgs
 		}
 	}
 	var taCmd, vpCmd tea.Cmd
@@ -94,7 +93,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m chatModel) View() string {
 	var chatName string
-	chat := m.cache.GetChat()
+	chat := m.chat
 	if chat.ChatType == 1 {
 		if user, err := m.sdk.Storage().Users.Get(context.Background(), chat.ChatId); err == nil {
 			chatName = user.UserName
@@ -130,7 +129,7 @@ func (m chatModel) sendMessage() *dbhelper.ChatMessage {
 	if value == "" {
 		return nil
 	}
-	chat := m.cache.GetChat()
+	chat := m.chat
 	p := payload.NewTextMessage(value, false, nil)
 	request := send.NewSendMsg(m.sdk.GetUID(), chat.ChatId, chat.ChatType, p, 0, 0)
 	ack, err := m.sdk.SendMessage(context.Background(), request)
@@ -143,8 +142,7 @@ func (m chatModel) sendMessage() *dbhelper.ChatMessage {
 	if !ok {
 		return nil
 	}
-	msg := m.saveSentMessage(request, sendAck)
-	return msg
+	return m.saveSentMessage(request, sendAck)
 }
 
 func (m *chatModel) updateSize(width, height int) {
@@ -156,21 +154,18 @@ func (m *chatModel) updateSize(width, height int) {
 }
 
 func (m chatModel) saveSentMessage(req *send.SendMsg, ack *send.SendAck) *dbhelper.ChatMessage {
-	chat := m.cache.GetChat()
+	chat := m.chat
 	uid := m.sdk.GetUID()
 	content, contentType := payload.ExtractContent(req.Payload)
 	message := dbhelper.NewMessage(chat.ChatType, chat.ChatId, ack.MsgId(), uid, chat.ChatId,
 		req.FromUserType, req.ToUserType, ack.MsgSeq(), content, contentType, req.CmdId(),
 		req.SendTimestamp, 0, ack.ServerSeq())
-	if err := m.sdk.Storage().Messages.Save(context.Background(), message); err != nil {
-		logger.Errorf("saveSentMessage error: %v", err)
-	}
-	m.sdk.Storage().Chats.UpdateVersion(context.Background(), chat.ChatId, chat.ChatType)
+	m.sdk.SaveSentMessage(context.Background(), message)
 	return message
 }
 
 func (m chatModel) viewMessage() string {
-	chatMessages := m.cache.GetMessages()
+	chatMessages := m.messages
 	if len(chatMessages) == 0 {
 		return lipgloss.Place(m.viewport.Width, m.viewport.Height, lipgloss.Center, lipgloss.Center,
 			"暂无消息，开始对话吧！")

@@ -63,7 +63,7 @@ func (r *callbackRegistry) fire(evt Event) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	for _, cb := range r.listeners {
-		r.fire0(evt, cb)
+		go r.fire0(evt, cb)
 	}
 }
 

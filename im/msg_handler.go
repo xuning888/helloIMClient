@@ -73,5 +73,8 @@ func (d *msgHandler) handlePush(resp protocol.Message) {
 	}
 
 	d.cli.store.Chats.UpdateVersion(context.Background(), msgFrom, chatType)
-	d.events.fire(Event{Type: EventMessageReceived, Data: message})
+
+	// 通过内部缓存排序 + 缺口补偿后，推送已排序的消息列表
+	sortedMessages := d.cli.store.Messages.ProcessIncomingMessage(message)
+	d.events.fire(Event{Type: EventMessageReceived, Data: sortedMessages})
 }

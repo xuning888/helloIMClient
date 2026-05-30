@@ -19,7 +19,8 @@ import (
 type SendMessageFunc func(ctx context.Context, chatID int64, chatType int32, content string) (*dbhelper.ChatMessage, error)
 
 type ChatModel struct {
-	cache    store.MsgCache
+	chat     *dbhelper.ImChat
+	messages []*dbhelper.ChatMessage
 	storage  *store.Store
 	uid      int64
 	sendMsg  SendMessageFunc
@@ -29,7 +30,7 @@ type ChatModel struct {
 	height   int
 }
 
-func NewChatModel(chat *dbhelper.ImChat, storage *store.Store, uid int64, sendFn SendMessageFunc) *ChatModel {
+func NewChatModel(chat *dbhelper.ImChat, messages []*dbhelper.ChatMessage, storage *store.Store, uid int64, sendFn SendMessageFunc) *ChatModel {
 	ta := textarea.New()
 	ta.Placeholder = "输入消息..."
 	ta.Focus()
@@ -40,9 +41,9 @@ func NewChatModel(chat *dbhelper.ImChat, storage *store.Store, uid int64, sendFn
 	vp := viewport.New(50, 10)
 	vp.Style = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(borderColor)
 
-	cache := storage.Messages.NewCache(chat)
 	return &ChatModel{
-		cache:    cache,
+		chat:     chat,
+		messages: messages,
 		storage:  storage,
 		uid:      uid,
 		sendMsg:  sendFn,
@@ -71,14 +72,12 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			if message != nil {
 				cmds = append(cmds, FetchUpdatedChatListCmd(m.storage))
-				chatID := m.cache.GetChat().ChatId
-				cmds = append(cmds, FetchUpdateMessageCmd(chatID, []*dbhelper.ChatMessage{message}))
 			}
 		}
 
 	case UpdateMessageMsg:
-		if m.cache.GetChat().ChatId == msg.ChatID {
-			m.cache.UpdateMessage(msg.Msgs)
+		if m.chat.ChatId == msg.ChatID {
+			m.messages = msg.Msgs
 		}
 	}
 
@@ -98,7 +97,7 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m ChatModel) View() string {
 	var chatName string
-	chat := m.cache.GetChat()
+	chat := m.chat
 	if chat.ChatType == 1 {
 		if user, err := m.storage.Users.Get(context.Background(), chat.ChatId); err == nil {
 			chatName = user.UserName
@@ -134,7 +133,7 @@ func (m ChatModel) sendMessage() *dbhelper.ChatMessage {
 	if value == "" {
 		return nil
 	}
-	chat := m.cache.GetChat()
+	chat := m.chat
 	msg, err := m.sendMsg(context.Background(), chat.ChatId, chat.ChatType, value)
 	if err != nil {
 		logger.Errorf("消息发送失败, error: %v", err)
@@ -152,7 +151,7 @@ func (m *ChatModel) UpdateSize(width, height int) {
 }
 
 func (m ChatModel) viewMessage() string {
-	chatMessages := m.cache.GetMessages()
+	chatMessages := m.messages
 	if len(chatMessages) == 0 {
 		return lipgloss.Place(m.viewport.Width, m.viewport.Height, lipgloss.Center, lipgloss.Center,
 			"暂无消息，开始对话吧！")

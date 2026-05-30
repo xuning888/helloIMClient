@@ -13,6 +13,10 @@ func (s *StorageImpl) Recent(ctx context.Context, chatID int64, chatType int32, 
 	return dbhelper.GetRecentMessage(ctx, chatID, chatType, limit)
 }
 
+func (s *StorageImpl) GetHistory(ctx context.Context, chatID int64, chatType int32, beforeSeq int64, limit int) ([]*dbhelper.ChatMessage, error) {
+	return dbhelper.GetHistoryMessages(ctx, chatID, chatType, beforeSeq, limit)
+}
+
 func (s *StorageImpl) Save(ctx context.Context, msg *dbhelper.ChatMessage) error {
 	return dbhelper.SaveOrUpdateMessage(ctx, s.Uid(), msg)
 }

@@ -64,19 +64,19 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// 路由消息：切换视图
 	case SelectChatMsg:
-		if m.chat == nil || m.chat.cache.GetChat().ChatId != msg.Chat.ChatId {
+		if m.chat == nil || m.chat.chat.ChatId != msg.Chat.ChatId {
 			if m.chat != nil {
-				m.chat.cache.Destroy()
+				m.chat = nil
 			}
+			messages := m.sdk.LoadMessages(msg.Chat)
 			storage := m.sdk.Storage()
-			m.chat = NewChatModel(msg.Chat, storage, m.sdk.GetUID(), m.makeSendFn())
+			m.chat = NewChatModel(msg.Chat, messages, storage, m.sdk.GetUID(), m.makeSendFn())
 		}
 		m.screen = ScreenChat
 		m.updateLayout()
 
 	case BackToListMsg:
 		if m.chat != nil {
-			m.chat.cache.Destroy()
 			m.chat = nil
 		}
 		m.screen = ScreenChatList
@@ -98,7 +98,8 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				logger.Errorf("创建聊天会话失败: %v", err)
 				return m, nil
 			}
-			m.chat = NewChatModel(chat, m.sdk.Storage(), m.sdk.GetUID(), m.makeSendFn())
+			messages := m.sdk.LoadMessages(chat)
+			m.chat = NewChatModel(chat, messages, m.sdk.Storage(), m.sdk.GetUID(), m.makeSendFn())
 			m.screen = ScreenChat
 			m.search = nil
 		}
@@ -253,10 +254,7 @@ func (m *AppModel) makeSendFn() SendMessageFunc {
 			contentStr, contentType, request.CmdId(),
 			request.SendTimestamp, 0, sendAck.ServerSeq())
 
-		if err := m.sdk.Storage().Messages.Save(ctx, msg); err != nil {
-			logger.Errorf("saveSentMessage error: %v", err)
-		}
-		m.sdk.Storage().Chats.UpdateVersion(ctx, chatID, chatType)
+		m.sdk.SaveSentMessage(ctx, msg)
 		return msg, nil
 	}
 }

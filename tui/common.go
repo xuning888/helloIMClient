@@ -52,7 +52,7 @@ func (m commonModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.focus = "chat"
 			logger.Infof("首次进入会话")
 		} else {
-			if m.chat.cache.GetChat().ChatId != msg.chat.ChatId {
+			if m.chat.chat.ChatId != msg.chat.ChatId {
 				m.chat = initChatModel(msg.chat, m.sdk)
 				m.focus = "chat"
 			}

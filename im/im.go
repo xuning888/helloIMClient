@@ -80,6 +80,29 @@ func (c *Client) OnEvent(cb EventCallback) func() {
 	return c.events.subscribe(cb)
 }
 
+// LoadMessages 加载会话消息（初始打开会话时调用），返回已排序的消息列表
+func (c *Client) LoadMessages(chat *dbhelper.ImChat) []*dbhelper.ChatMessage {
+	cache := c.store.Messages.NewCache(chat)
+	return cache.GetMessages()
+}
+
+// SaveSentMessage 保存已发送消息：入库 + 更新缓存 + 通知 UI
+func (c *Client) SaveSentMessage(ctx context.Context, msg *dbhelper.ChatMessage) {
+	if err := c.store.Messages.Save(ctx, msg); err != nil {
+		c.events.fire(Event{Type: EventError, Data: err})
+		return
+	}
+	c.store.Chats.UpdateVersion(ctx, msg.ChatID, msg.ChatType)
+
+	sortedMessages := c.store.Messages.ProcessIncomingMessage(msg)
+	c.events.fire(Event{Type: EventMessageReceived, Data: sortedMessages})
+}
+
+// GetHistory 获取历史消息（游标分页），beforeSeq=0 表示获取最新消息
+func (c *Client) GetHistory(ctx context.Context, chatID int64, chatType int32, beforeSeq int64, limit int) ([]*dbhelper.ChatMessage, error) {
+	return c.store.Messages.GetHistory(ctx, chatID, chatType, beforeSeq, limit)
+}
+
 // GetUID 获取当前用户 ID
 func (c *Client) GetUID() int64 {
 	return c.opts.UID

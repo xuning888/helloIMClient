@@ -69,7 +69,7 @@ func (m *MsgCacheImpl) loadInitialMessages() {
 	m.checkMissingMessageAndSort(ctx)
 }
 
-func (m *MsgCacheImpl) UpdateMessage(msgs []*dbhelper.ChatMessage) {
+func (m *MsgCacheImpl) updateMessage(msgs []*dbhelper.ChatMessage) {
 	m.mux.Lock()
 	defer m.mux.Unlock()
 	ctx := context.Background()
@@ -171,6 +171,13 @@ func (m *MsgCacheImpl) truncateMessages(messages []*dbhelper.ChatMessage) []*dbh
 		delete(m.dup, msg.MsgID)
 	}
 	return msgs
+}
+
+func (s *StorageImpl) ProcessIncomingMessage(msg *dbhelper.ChatMessage) []*dbhelper.ChatMessage {
+	chat := dbhelper.NewImChat(s.Uid(), msg.ChatID, msg.ChatType)
+	cache := s.NewCache(chat).(*MsgCacheImpl)
+	cache.updateMessage([]*dbhelper.ChatMessage{msg})
+	return cache.GetMessages()
 }
 
 func (m *MsgCacheImpl) Destroy() {

@@ -137,3 +137,24 @@ func GetMessagesBySeq(ctx context.Context, chatId int64, minServerSeq, maxServer
 	}
 	return msgs, nil
 }
+
+// GetHistoryMessages 游标分页获取历史消息
+// beforeSeq: 小于此 ServerSeq 的消息 (0 表示获取最新)
+// 返回的消息按 ServerSeq 升序排列
+func GetHistoryMessages(ctx context.Context, chatID int64, chatType int32, beforeSeq int64, limit int) ([]*ChatMessage, error) {
+	msgs := make([]*ChatMessage, 0)
+	query := DB.WithContext(ctx).Model(&ChatMessage{}).
+		Where("chat_id = ? AND chat_type = ?", chatID, chatType)
+	if beforeSeq > 0 {
+		query = query.Where("server_seq < ?", beforeSeq)
+	}
+	err := query.Order("server_seq DESC").Limit(limit).Find(&msgs).Error
+	if err != nil {
+		return nil, err
+	}
+	// 反转为升序便于 UI prepend
+	for i, j := 0, len(msgs)-1; i < j; i, j = i+1, j-1 {
+		msgs[i], msgs[j] = msgs[j], msgs[i]
+	}
+	return msgs, nil
+}

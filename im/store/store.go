@@ -56,7 +56,6 @@ func (s *StorageImpl) Uid() int64 {
 type MsgCache interface {
 	GetChat() *dbhelper.ImChat
 	GetMessages() []*dbhelper.ChatMessage
-	UpdateMessage(msgs []*dbhelper.ChatMessage)
 	Refresh()
 	Destroy()
 }
@@ -83,6 +82,8 @@ type MessageStore interface {
 	PullOfflineMsg(ctx context.Context, chatId int64, chatType int32, minServerSeq, maxServerSeq int64) ([]*dbhelper.ChatMessage, error)
 	NewCache(chat *dbhelper.ImChat) MsgCache
 	DestroyCache(chat *dbhelper.ImChat)
+	GetHistory(ctx context.Context, chatID int64, chatType int32, beforeSeq int64, limit int) ([]*dbhelper.ChatMessage, error)
+	ProcessIncomingMessage(msg *dbhelper.ChatMessage) []*dbhelper.ChatMessage
 }
 
 // UserStore 用户存储接口

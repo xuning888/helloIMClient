@@ -56,15 +56,14 @@ func (i *ImApp) registerEventCallbacks() {
 	i.sdk.OnEvent(func(evt im.Event) {
 		switch evt.Type {
 		case im.EventMessageReceived:
-			msg, ok := evt.Data.(*dbhelper.ChatMessage)
-			if !ok {
+			msgs, ok := evt.Data.([]*dbhelper.ChatMessage)
+			if !ok || len(msgs) == 0 {
 				return
 			}
-			// 更新 TUI：执行 tea.Cmd 得到 tea.Msg 后发送
 			if cmd := tui.FetchUpdatedChatListCmd(i.sdk); cmd != nil {
 				i.program.Send(cmd())
 			}
-			if cmd := tui.FetchUpdateMessage(msg.ChatID, []*dbhelper.ChatMessage{msg}); cmd != nil {
+			if cmd := tui.FetchUpdateMessage(msgs[0].ChatID, msgs); cmd != nil {
 				i.program.Send(cmd())
 			}
 		case im.EventConnected:
