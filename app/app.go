@@ -53,19 +53,21 @@ func (i *ImApp) Start() error {
 
 // registerEventCallbacks 将 SDK 事件转换为 TUI 命令
 func (i *ImApp) registerEventCallbacks() {
+	// 注册新消息监听器（typed callback）
+	i.sdk.MessageManager.AddOnNewMsgListener("app", func(msgs []*dbhelper.ChatMessage) {
+		if len(msgs) == 0 {
+			return
+		}
+		if cmd := tui.FetchUpdatedChatListCmd(i.sdk); cmd != nil {
+			i.program.Send(cmd())
+		}
+		if cmd := tui.FetchUpdateMessage(msgs[0].ChatID, msgs); cmd != nil {
+			i.program.Send(cmd())
+		}
+	})
+	// 注册连接事件
 	i.sdk.OnEvent(func(evt im.Event) {
 		switch evt.Type {
-		case im.EventMessageReceived:
-			msgs, ok := evt.Data.([]*dbhelper.ChatMessage)
-			if !ok || len(msgs) == 0 {
-				return
-			}
-			if cmd := tui.FetchUpdatedChatListCmd(i.sdk); cmd != nil {
-				i.program.Send(cmd())
-			}
-			if cmd := tui.FetchUpdateMessage(msgs[0].ChatID, msgs); cmd != nil {
-				i.program.Send(cmd())
-			}
 		case im.EventConnected:
 			logger.Infof("app: SDK connected")
 

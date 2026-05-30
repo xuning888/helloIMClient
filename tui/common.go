@@ -152,7 +152,7 @@ func (m commonModel) statusBarView() string {
 	if m.focus == "list" {
 		focusInfo = "list: ↑↓ 选择 • Space 打开 • Tab 切换 • ctrl+c 退出"
 	} else if m.focus == "chat" {
-		focusInfo = "chat: Enter 发送 • Tab 切换 • Esc 返回"
+		focusInfo = "chat: Enter 发送 • ↑↓ 翻动 • Esc 返回"
 	} else {
 		focusInfo = "search: ↑↓ 选择 • Enter 创建会话 • Esc 返回"
 	}

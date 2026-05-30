@@ -16,7 +16,7 @@ type Client struct {
 	opts   *Options
 	store  *store.Store
 	events *callbackRegistry
-	*MsgManager
+	*MessageManager
 	*ConnManager
 }
 
@@ -54,7 +54,7 @@ func New(addr string, opts ...Option) (*Client, error) {
 	tr := transport.NewConn(options.UID, &defaultAddrProvider{}, sender)
 
 	// 创建子管理器
-	cli.MsgManager = newMsgManager(cli)
+	cli.MessageManager = newMsgManager(cli)
 	cli.ConnManager = newConnManager(tr, events)
 
 	return cli, nil
@@ -95,7 +95,7 @@ func (c *Client) SaveSentMessage(ctx context.Context, msg *dbhelper.ChatMessage)
 	c.store.Chats.UpdateVersion(ctx, msg.ChatID, msg.ChatType)
 
 	sortedMessages := c.store.Messages.ProcessIncomingMessage(msg)
-	c.events.fire(Event{Type: EventMessageReceived, Data: sortedMessages})
+	c.MessageManager.pushNewMsg(sortedMessages)
 }
 
 // GetHistory 获取历史消息（游标分页），beforeSeq=0 表示获取最新消息

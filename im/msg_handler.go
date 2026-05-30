@@ -76,5 +76,5 @@ func (d *msgHandler) handlePush(resp protocol.Message) {
 
 	// 通过内部缓存排序 + 缺口补偿后，推送已排序的消息列表
 	sortedMessages := d.cli.store.Messages.ProcessIncomingMessage(message)
-	d.events.fire(Event{Type: EventMessageReceived, Data: sortedMessages})
+	d.cli.MessageManager.pushNewMsg(sortedMessages)
 }

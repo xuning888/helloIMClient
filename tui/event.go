@@ -61,3 +61,17 @@ func FetchUpdateMessage(chatId int64, msg []*sqllite.ChatMessage) tea.Cmd {
 		}
 	}
 }
+
+// historyLoadedMsg 历史消息加载完成
+type historyLoadedMsg struct {
+	messages []*sqllite.ChatMessage
+	err      error
+}
+
+// fetchHistoryCmd 加载历史消息
+func fetchHistoryCmd(sdk *im.Client, chatID int64, chatType int32, beforeSeq int64, limit int) tea.Cmd {
+	return func() tea.Msg {
+		msgs, err := sdk.GetHistory(context.Background(), chatID, chatType, beforeSeq, limit)
+		return historyLoadedMsg{messages: msgs, err: err}
+	}
+}
