@@ -1,16 +1,16 @@
 package im
 
-// msgManager 消息管理器
-type msgManager struct {
+// MsgManager 消息管理器
+type MsgManager struct {
 	cli *Client
 }
 
-func newMsgManager(cli *Client) *msgManager {
-	return &msgManager{cli: cli}
+func newMsgManager(cli *Client) *MsgManager {
+	return &MsgManager{cli: cli}
 }
 
 // AddNewMsgListener 注册新消息回调，返回取消函数
-func (mm *msgManager) AddNewMsgListener(cb EventCallback) func() {
+func (mm *MsgManager) AddNewMsgListener(cb EventCallback) func() {
 	return mm.cli.events.subscribe(func(evt Event) {
 		if evt.Type == EventMessageReceived {
 			cb(evt)
@@ -19,9 +19,17 @@ func (mm *msgManager) AddNewMsgListener(cb EventCallback) func() {
 }
 
 // AddOnSendMsgListener 注册消息发送回调
-func (mm *msgManager) AddOnSendMsgListener(cb EventCallback) func() {
+func (mm *MsgManager) AddOnSendMsgListener(cb EventCallback) func() {
 	return mm.cli.events.subscribe(func(evt Event) {
 		if evt.Type == EventMessageSent {
+			cb(evt)
+		}
+	})
+}
+
+func (mm *MsgManager) AddMessageInsertListener(cb EventCallback) func() {
+	return mm.cli.events.subscribe(func(evt Event) {
+		if evt.Type == EventMessageInsert {
 			cb(evt)
 		}
 	})

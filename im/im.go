@@ -16,8 +16,8 @@ type Client struct {
 	opts   *Options
 	store  *store.Store
 	events *callbackRegistry
-	*msgManager
-	*connManager
+	*MsgManager
+	*ConnManager
 }
 
 // New 创建 SDK 客户端实例
@@ -47,36 +47,22 @@ func New(addr string, opts ...Option) (*Client, error) {
 		store:  storage,
 	}
 	// 创建分发器
-	dispatcher := newDispatcher(storage, events)
+	mh := newMsgHandler(cli, events)
 
 	// 创建 transport
-	tr := transport.NewClient(options.UID, dispatcher.dispatch, &defaultAddrProvider{}, dbhelper.GetSeq)
+	sender := transport.NewSender(dbhelper.GetSeq, mh.dispatch)
+	tr := transport.NewConn(options.UID, &defaultAddrProvider{}, sender)
 
 	// 创建子管理器
-	cli.msgManager = newMsgManager(cli)
-	cli.connManager = newConnManager(tr, events)
+	cli.MsgManager = newMsgManager(cli)
+	cli.ConnManager = newConnManager(tr, events)
 
 	return cli, nil
 }
 
-// Connect 建立连接
-func (c *Client) Connect(ctx context.Context) error {
-	return c.connManager.Connect(ctx)
-}
-
-// Disconnect 断开连接
-func (c *Client) Disconnect(ctx context.Context) error {
-	return c.connManager.Disconnect(ctx)
-}
-
-// State 获取当前连接状态
-func (c *Client) State() ConnState {
-	return c.connManager.State()
-}
-
 // SendMessage 发送上行消息并同步等待 ACK
 func (c *Client) SendMessage(ctx context.Context, msg protocol.Message) (protocol.Message, error) {
-	ack, err := c.connManager.transport.Send(ctx, msg)
+	ack, err := c.ConnManager.transport.Send(ctx, msg)
 	if err != nil {
 		return nil, err
 	}

@@ -9,12 +9,11 @@ import (
 
 	"github.com/panjf2000/gnet/v2"
 	"github.com/xuning888/helloIMClient/im/protocol"
+	"github.com/xuning888/helloIMClient/im/protocol/connect"
 	"github.com/xuning888/helloIMClient/pkg/logger"
 )
 
 var (
-	ErrClosed = errors.New("transport client closed")
-
 	maxReconnectAttempts = 10
 	baseReconnectDelay   = 500 // ms
 )
@@ -33,8 +32,8 @@ type AddrProvider interface {
 	GetAddr(ctx context.Context) ([]string, error)
 }
 
-// Client 传输层客户端，管理连接生命周期 + 消息收发
-type Client struct {
+// Conn 传输层客户端，管理连接生命周期 + 消息收发
+type Conn struct {
 	uid int64
 	gnet.BuiltinEventEngine
 
@@ -55,8 +54,7 @@ type Client struct {
 	closed     atomic.Int32
 
 	// 子组件
-	sender   *sender
-	dispatch func(protocol.Message)
+	sender *Sender
 
 	// 地址
 	addrProvider AddrProvider
@@ -67,25 +65,24 @@ type Client struct {
 	cancel context.CancelFunc
 }
 
-// NewClient 创建传输客户端
-func NewClient(uid int64, dispatch func(protocol.Message), addrProvider AddrProvider, getSeq GetSeq) *Client {
+// NewConn 创建传输客户端
+func NewConn(uid int64, addrProvider AddrProvider, sender *Sender) *Conn {
 	ctx, cancel := context.WithCancel(context.Background())
-	c := &Client{
+	c := &Conn{
 		uid:          uid,
 		log:          logger.Named("transport"),
 		state:        atomic.Int32{},
 		addrProvider: addrProvider,
-		dispatch:     dispatch,
+		sender:       sender,
 		ctx:          ctx,
 		cancel:       cancel,
 	}
 	c.state.Store(int32(StateDisconnected))
-	c.sender = newSender(getSeq, dispatch)
 	return c
 }
 
 // Connect 建立连接
-func (c *Client) Connect(ctx context.Context) error {
+func (c *Conn) Connect(ctx context.Context) error {
 	if c.State() == StateConnected {
 		return nil
 	}
@@ -108,7 +105,7 @@ func (c *Client) Connect(ctx context.Context) error {
 }
 
 // Send 发送消息
-func (c *Client) Send(ctx context.Context, msg protocol.Message) (protocol.Message, error) {
+func (c *Conn) Send(ctx context.Context, msg protocol.Message) (protocol.Message, error) {
 	if c.State() != StateConnected {
 		return nil, errors.New("transport: not connected")
 	}
@@ -120,7 +117,7 @@ func (c *Client) Send(ctx context.Context, msg protocol.Message) (protocol.Messa
 }
 
 // Close 关闭客户端
-func (c *Client) Close() {
+func (c *Conn) Close() {
 	c.closeOnce.Do(func() {
 		c.closed.Store(1)
 		c.cancel()
@@ -130,33 +127,33 @@ func (c *Client) Close() {
 }
 
 // State 当前连接状态
-func (c *Client) State() ConnState {
+func (c *Conn) State() ConnState {
 	return ConnState(c.state.Load())
 }
 
 // ---- gnet.EventHandler ----
 
-func (c *Client) OnTraffic(gconn gnet.Conn) gnet.Action {
+func (c *Conn) OnTraffic(gconn gnet.Conn) gnet.Action {
 	for {
 		frame, _, action := readFrame(gconn)
 		if frame == nil {
 			return action
 		}
 		if frame.Header.Req == protocol.RES {
-			// ACK 响应：完成 sender 中的 promise
-			c.sender.complete(frame)
+			// ACK 响应：完成 Sender 中的 promise
+			c.sender.Complete(frame)
 		} else {
 			// 推送消息：交接给 dispatch goroutine
-			c.sender.dispatchFrame(frame, gconn)
+			c.sender.DispatchFrame(frame, gconn)
 		}
 	}
 }
 
-func (c *Client) OnTick() (delay time.Duration, action gnet.Action) {
+func (c *Conn) OnTick() (delay time.Duration, action gnet.Action) {
 	if c.State() == StateConnected {
 		conn := c.getConn()
 		if conn != nil {
-			if err := sendPing(conn); err != nil {
+			if err := c.sender.SendPing(conn); err != nil {
 				c.log.Errorf("heartbeat error: %v", err)
 			}
 		}
@@ -164,7 +161,7 @@ func (c *Client) OnTick() (delay time.Duration, action gnet.Action) {
 	return 10 * time.Second, gnet.None
 }
 
-func (c *Client) OnClose(gconn gnet.Conn, err error) gnet.Action {
+func (c *Conn) OnClose(gconn gnet.Conn, err error) gnet.Action {
 	c.connMu.Lock()
 	if c.conn == gconn {
 		c.conn = nil
@@ -181,7 +178,7 @@ func (c *Client) OnClose(gconn gnet.Conn, err error) gnet.Action {
 
 // ---- 内部方法 ----
 
-func (c *Client) dial(ctx context.Context, addr string) error {
+func (c *Conn) dial(ctx context.Context, addr string) error {
 	cli, err := gnet.NewClient(c, gnet.WithTicker(true),
 		gnet.WithLogger(logger.Named("gnet")))
 	if err != nil {
@@ -236,7 +233,7 @@ func (c *Client) dial(ctx context.Context, addr string) error {
 	return nil
 }
 
-func (c *Client) trySlave() string {
+func (c *Conn) trySlave() string {
 	ips, err := c.addrProvider.GetAddr(context.Background())
 	if err != nil || len(ips) < 2 {
 		return ""
@@ -244,8 +241,8 @@ func (c *Client) trySlave() string {
 	return ips[1]
 }
 
-func (c *Client) auth(ctx context.Context) error {
-	msg := NewAuthRequest(c.uid, 0, "")
+func (c *Conn) auth(ctx context.Context) error {
+	msg := connect.NewAuthRequest(c.uid, 0, "")
 	conn := c.getConn()
 	if conn == nil {
 		return errors.New("no connection for auth")
@@ -254,13 +251,13 @@ func (c *Client) auth(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if authResp, ok := resp.(*AuthResponse); ok && authResp.AuthResponse.Success {
+	if authResp, ok := resp.(*connect.AuthResponse); ok && authResp.AuthResponse.Success {
 		return nil
 	}
 	return errors.New("auth failed")
 }
 
-func (c *Client) forceReconnect() {
+func (c *Conn) forceReconnect() {
 	if c.closed.Load() == 1 {
 		return
 	}
@@ -296,7 +293,7 @@ func (c *Client) forceReconnect() {
 	})
 }
 
-func (c *Client) fetchAddr(ctx context.Context) error {
+func (c *Conn) fetchAddr(ctx context.Context) error {
 	ips, err := c.addrProvider.GetAddr(ctx)
 	if err != nil {
 		return err
@@ -312,7 +309,7 @@ func (c *Client) fetchAddr(ctx context.Context) error {
 	return nil
 }
 
-func (c *Client) closeConn() {
+func (c *Conn) closeConn() {
 	if !c.closing.CompareAndSwap(false, true) {
 		return
 	}
@@ -333,18 +330,18 @@ func (c *Client) closeConn() {
 	}
 }
 
-func (c *Client) setConn(conn gnet.Conn) {
+func (c *Conn) setConn(conn gnet.Conn) {
 	c.connMu.Lock()
 	c.conn = conn
 	c.connMu.Unlock()
 }
 
-func (c *Client) getConn() gnet.Conn {
+func (c *Conn) getConn() gnet.Conn {
 	c.connMu.RLock()
 	defer c.connMu.RUnlock()
 	return c.conn
 }
 
-func (c *Client) setState(state ConnState) {
+func (c *Conn) setState(state ConnState) {
 	c.state.Store(int32(state))
 }

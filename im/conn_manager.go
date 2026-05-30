@@ -20,21 +20,21 @@ const (
 	StateDisconnecting
 )
 
-type connManager struct {
-	transport *transport.Client
+type ConnManager struct {
+	transport *transport.Conn
 	events    *callbackRegistry
 	state     atomic.Int32
 	closeOnce sync.Once
 }
 
-func newConnManager(tr *transport.Client, events *callbackRegistry) *connManager {
-	return &connManager{
+func newConnManager(tr *transport.Conn, events *callbackRegistry) *ConnManager {
+	return &ConnManager{
 		transport: tr,
 		events:    events,
 	}
 }
 
-func (c *connManager) Connect(ctx context.Context) error {
+func (c *ConnManager) Connect(ctx context.Context) error {
 	c.state.Store(int32(StateConnecting))
 	c.events.fire(Event{Type: EventConnecting})
 
@@ -49,7 +49,7 @@ func (c *connManager) Connect(ctx context.Context) error {
 	return nil
 }
 
-func (c *connManager) Disconnect(ctx context.Context) error {
+func (c *ConnManager) Disconnect(ctx context.Context) error {
 	var err error
 	c.closeOnce.Do(func() {
 		c.state.Store(int32(StateDisconnecting))
@@ -63,7 +63,7 @@ func (c *connManager) Disconnect(ctx context.Context) error {
 		case <-ctx.Done():
 			err = ctx.Err()
 		case <-time.After(5 * time.Second):
-			logger.Errorf("connManager: disconnect timeout")
+			logger.Errorf("ConnManager: disconnect timeout")
 		}
 		c.state.Store(int32(StateDisconnected))
 		c.events.fire(Event{Type: EventDisconnected})
@@ -71,6 +71,6 @@ func (c *connManager) Disconnect(ctx context.Context) error {
 	return err
 }
 
-func (c *connManager) State() ConnState {
+func (c *ConnManager) State() ConnState {
 	return ConnState(c.state.Load())
 }

@@ -7,13 +7,14 @@ import (
 
 	"github.com/panjf2000/gnet/v2"
 	"github.com/xuning888/helloIMClient/im/protocol"
+	"github.com/xuning888/helloIMClient/im/protocol/heatbeat"
 	"github.com/xuning888/helloIMClient/pkg/logger"
 )
 
 // GetSeq 序号分配器
 type GetSeq func() int32
 
-type sender struct {
+type Sender struct {
 	log      logger.Logger
 	requests sync.Map // key: int32(seq) → *promise
 	getSeq   GetSeq
@@ -30,10 +31,10 @@ type dispatchItem struct {
 	conn  gnet.Conn
 }
 
-func newSender(getSeq GetSeq, dispatch func(protocol.Message)) *sender {
+func NewSender(getSeq GetSeq, dispatch func(protocol.Message)) *Sender {
 	ctx, cancel := context.WithCancel(context.Background())
-	s := &sender{
-		log:      logger.Named("sender"),
+	s := &Sender{
+		log:      logger.Named("Sender"),
 		requests: sync.Map{},
 		getSeq:   getSeq,
 		respChan: make(chan *dispatchItem, 5000),
@@ -45,14 +46,14 @@ func newSender(getSeq GetSeq, dispatch func(protocol.Message)) *sender {
 	return s
 }
 
-func (s *sender) startDispatchWorkers(n int) {
+func (s *Sender) startDispatchWorkers(n int) {
 	for i := 0; i < n; i++ {
 		go s.dispatchWorker()
 	}
 }
 
 // send 停等协议：分配 seq，编码写出，等待 ACK
-func (s *sender) send(ctx context.Context, conn gnet.Conn, msg protocol.Message, timeout time.Duration) (protocol.Message, error) {
+func (s *Sender) send(ctx context.Context, conn gnet.Conn, msg protocol.Message, timeout time.Duration) (protocol.Message, error) {
 	seq := s.getSeq()
 	frame, err := protocol.EncodeMessageToFrame(seq, protocol.REQ, msg)
 	if err != nil {
@@ -70,7 +71,7 @@ func (s *sender) send(ctx context.Context, conn gnet.Conn, msg protocol.Message,
 }
 
 // sendWithRetry 带重试的停等发送
-func (s *sender) sendWithRetry(ctx context.Context, conn gnet.Conn, msg protocol.Message, timeout time.Duration, maxRetry int) (protocol.Message, error) {
+func (s *Sender) sendWithRetry(ctx context.Context, conn gnet.Conn, msg protocol.Message, timeout time.Duration, maxRetry int) (protocol.Message, error) {
 	var lastErr error
 	for attempt := 0; attempt < maxRetry; attempt++ {
 		if attempt > 0 {
@@ -87,8 +88,8 @@ func (s *sender) sendWithRetry(ctx context.Context, conn gnet.Conn, msg protocol
 	return nil, lastErr
 }
 
-// complete 完成 promise（ACK 到达时调用）
-func (s *sender) complete(frame *protocol.Frame) {
+// Complete 完成 promise（ACK 到达时调用）
+func (s *Sender) Complete(frame *protocol.Frame) {
 	seq := frame.Header.Seq
 	if val, ok := s.requests.Load(seq); ok {
 		if p, ok := val.(*promise); ok {
@@ -97,8 +98,8 @@ func (s *sender) complete(frame *protocol.Frame) {
 	}
 }
 
-// dispatchFrame 异步分发推送消息（非阻塞，不够缓冲时起 goroutine 写）
-func (s *sender) dispatchFrame(frame *protocol.Frame, conn gnet.Conn) {
+// DispatchFrame 异步分发推送消息（非阻塞，不够缓冲时起 goroutine 写）
+func (s *Sender) DispatchFrame(frame *protocol.Frame, conn gnet.Conn) {
 	item := &dispatchItem{frame: frame, conn: conn}
 	select {
 	case s.respChan <- item:
@@ -113,9 +114,9 @@ func sendAck(conn gnet.Conn, frame *protocol.Frame) {
 	writeFrame(conn, ack)
 }
 
-// sendPing 发送心跳
-func sendPing(conn gnet.Conn) error {
-	ping := NewHeartbeatRequest()
+// SendPing 发送心跳
+func (s *Sender) SendPing(conn gnet.Conn) error {
+	ping := heatbeat.NewHeartbeatRequest()
 	pingFrame, err := protocol.EncodeMessageToFrame(0, protocol.REQ, ping)
 	if err != nil {
 		return err
@@ -123,7 +124,7 @@ func sendPing(conn gnet.Conn) error {
 	return writeFrame(conn, protocol.ToBytes(pingFrame))
 }
 
-func (s *sender) dispatchWorker() {
+func (s *Sender) dispatchWorker() {
 	for {
 		select {
 		case <-s.ctx.Done():
@@ -143,7 +144,7 @@ func (s *sender) dispatchWorker() {
 	}
 }
 
-func (s *sender) close() {
+func (s *Sender) close() {
 	s.cancel()
 }
 

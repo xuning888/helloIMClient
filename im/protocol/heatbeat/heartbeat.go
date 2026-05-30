@@ -1,4 +1,4 @@
-package transport
+package heatbeat
 
 import (
 	"github.com/xuning888/helloIMClient/im/proto"

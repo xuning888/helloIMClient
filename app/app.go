@@ -27,7 +27,7 @@ func New(sdk *im.Client) *ImApp {
 // Start 启动应用
 func (i *ImApp) Start() error {
 	ctx := context.Background()
-	if err := i.sdk.Connect(ctx); err != nil {
+	if err := i.sdk.ConnManager.Connect(ctx); err != nil {
 		return fmt.Errorf("connect: %w", err)
 	}
 
@@ -45,7 +45,9 @@ func (i *ImApp) Start() error {
 		return err
 	}
 
-	i.sdk.Disconnect(ctx)
+	if err := i.sdk.ConnManager.Disconnect(ctx); err != nil {
+		return nil
+	}
 	return nil
 }
 

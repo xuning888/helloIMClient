@@ -9,23 +9,22 @@ import (
 	pb "github.com/xuning888/helloIMClient/im/proto"
 	"github.com/xuning888/helloIMClient/im/protocol"
 	"github.com/xuning888/helloIMClient/im/protocol/push"
-	"github.com/xuning888/helloIMClient/im/store"
 	"github.com/xuning888/helloIMClient/pkg/logger"
 )
 
-type dispatcher struct {
-	store  *store.Store
+type msgHandler struct {
+	cli    *Client
 	events *callbackRegistry
 }
 
-func newDispatcher(store *store.Store, events *callbackRegistry) *dispatcher {
-	return &dispatcher{
-		store:  store,
+func newMsgHandler(cli *Client, events *callbackRegistry) *msgHandler {
+	return &msgHandler{
+		cli:    cli,
 		events: events,
 	}
 }
 
-func (d *dispatcher) dispatch(msg protocol.Message) {
+func (d *msgHandler) dispatch(msg protocol.Message) {
 	if msg == nil {
 		return
 	}
@@ -33,11 +32,11 @@ func (d *dispatcher) dispatch(msg protocol.Message) {
 	case int32(pb.CmdId_CMD_ID_PUSH):
 		d.handlePush(msg)
 	default:
-		logger.Infof("dispatcher: unhandled push message, cmdId: %d", msg.CmdId())
+		logger.Infof("msgHandler: unhandled push message, cmdId: %d", msg.CmdId())
 	}
 }
 
-func (d *dispatcher) handlePush(resp protocol.Message) {
+func (d *msgHandler) handlePush(resp protocol.Message) {
 	response, ok := resp.(*push.RecvMsg)
 	if !ok {
 		return
@@ -45,17 +44,17 @@ func (d *dispatcher) handlePush(resp protocol.Message) {
 
 	msgTo, err := strconv.ParseInt(response.GetChatId(), 10, 64)
 	if err != nil {
-		logger.Errorf("dispatcher Push: parse chatId error: %v", err)
+		logger.Errorf("msgHandler Push: parse chatId error: %v", err)
 		return
 	}
 
 	msgFrom, err := strconv.ParseInt(response.GetFrom(), 10, 64)
 	if err != nil {
-		logger.Errorf("dispatcher Push: parse from error: %v", err)
+		logger.Errorf("msgHandler Push: parse from error: %v", err)
 		return
 	}
 
-	logger.Infof("dispatcher Push: received message, msgId: %v, chatType: %d", response.MsgId(), response.GetChatType())
+	logger.Infof("msgHandler Push: received message, msgId: %v, chatType: %d", response.MsgId(), response.GetChatType())
 
 	content, contentType := payload.ExtractContent(response.GetPayload())
 	chatType := response.GetChatType()
@@ -67,12 +66,12 @@ func (d *dispatcher) handlePush(resp protocol.Message) {
 		response.CmdId(),
 		response.GetSendTimestamp(), 0, response.ServerSeq())
 
-	if err := d.store.Messages.Save(context.Background(), message); err != nil {
-		logger.Errorf("dispatcher Push: save message error: %v", err)
+	if err := d.cli.store.Messages.Save(context.Background(), message); err != nil {
+		logger.Errorf("msgHandler Push: save message error: %v", err)
 		d.events.fire(Event{Type: EventError, Data: err})
 		return
 	}
 
-	d.store.Chats.UpdateVersion(context.Background(), msgFrom, chatType)
+	d.cli.store.Chats.UpdateVersion(context.Background(), msgFrom, chatType)
 	d.events.fire(Event{Type: EventMessageReceived, Data: message})
 }

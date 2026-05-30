@@ -20,7 +20,7 @@ func TestNewClient(t *testing.T) {
 	logger.InitLogger()
 	http.Init("http://127.0.0.1:8087", time.Second*5)
 
-	client := NewClient(testDispatch, &testAddrProvider{}, getSeq)
+	client := NewConn(testDispatch, &testAddrProvider{}, getSeq)
 	if err := client.Connect(context.Background()); err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +56,7 @@ func TestImClient_WriteMessage(t *testing.T) {
 func writeMessage(i int, t *testing.T) {
 	logger.InitLogger()
 	http.Init("http://127.0.0.1:8087", time.Second*5)
-	client := NewClient(testDispatch, &testAddrProvider{}, getSeq)
+	client := NewConn(testDispatch, &testAddrProvider{}, getSeq)
 	if err := client.Connect(context.Background()); err != nil {
 		t.Fatal(err)
 	}

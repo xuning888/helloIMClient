@@ -9,12 +9,21 @@ import (
 type EventType int
 
 const (
-	EventConnected       EventType = iota // 连接简历
-	EventDisconnected                     // 连接关闭
-	EventConnecting                       // 连接建立中
-	EventMessageReceived                  // 收到新消息
-	EventMessageSent                      // 消息发送成功
-	EventError                            // 异常事件
+	// -----长连接相关的事件----
+
+	EventConnected    EventType = iota // 连接简历
+	EventDisconnected                  // 连接关闭
+	EventConnecting                    // 连接建立中
+
+	// -----消息相关的事件----
+
+	EventMessageInsert   // 消息入库时间
+	EventMessageReceived // 收到新消息
+	EventMessageSent     // 消息发送成功
+
+	// ---- 异常事件-------
+
+	EventError // 异常事件
 )
 
 // Event SDK 事件
@@ -54,6 +63,15 @@ func (r *callbackRegistry) fire(evt Event) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	for _, cb := range r.listeners {
-		cb(evt)
+		r.fire0(evt, cb)
 	}
+}
+
+func (r *callbackRegistry) fire0(evt Event, cb EventCallback) {
+	defer func() {
+		if err := recover(); err != nil {
+			println(err.(string))
+		}
+	}()
+	cb(evt)
 }
