@@ -1,4 +1,4 @@
-package sqllite
+package dbhelper
 
 import (
 	"context"

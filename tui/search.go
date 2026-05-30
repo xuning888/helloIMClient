@@ -8,7 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/xuning888/helloIMClient/im/dal/sqllite"
+	"github.com/xuning888/helloIMClient/im/dbhelper"
 	"github.com/xuning888/helloIMClient/pkg/logger"
 )
 
@@ -16,7 +16,7 @@ var _ tea.Model = &searchModel{}
 
 type searchModel struct {
 	searchInput   textarea.Model
-	searchResults []*sqllite.ImUser
+	searchResults []*dbhelper.ImUser
 	width         int
 	height        int
 	cursor        int
@@ -31,7 +31,7 @@ func initSearchModel() *searchModel {
 	searchTa.KeyMap.InsertNewline.SetEnabled(false)
 	return &searchModel{
 		searchInput:   searchTa,
-		searchResults: make([]*sqllite.ImUser, 0),
+		searchResults: make([]*dbhelper.ImUser, 0),
 		cursor:        0,
 		searching:     false,
 	}
@@ -49,7 +49,7 @@ func (m searchModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEsc.String(): // 退出搜索
 			return m, fetchExitSearchMsg()
 		case tea.KeyEnter.String():
-			var user *sqllite.ImUser = nil
+			var user *dbhelper.ImUser = nil
 			if len(m.searchResults) != 0 {
 				if m.cursor >= 0 && m.cursor < len(m.searchResults) {
 					user = m.searchResults[m.cursor]
@@ -74,7 +74,7 @@ func (m searchModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.searching = true
 				cmds = append(cmds, fetchSearchUserMsg(searchKey))
 			} else {
-				m.searchResults = make([]*sqllite.ImUser, 0)
+				m.searchResults = make([]*dbhelper.ImUser, 0)
 				m.searching = false
 			}
 		}
@@ -84,7 +84,7 @@ func (m searchModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.searchResults = msg.users
 		} else {
 			logger.Errorf("搜索用户失败: %v", msg.err)
-			m.searchResults = make([]*sqllite.ImUser, 0)
+			m.searchResults = make([]*dbhelper.ImUser, 0)
 		}
 	}
 	return &m, tea.Batch(cmds...)
@@ -187,10 +187,10 @@ func fetchExitSearchMsg() tea.Cmd {
 }
 
 type searchSelectedUserMsg struct {
-	user *sqllite.ImUser
+	user *dbhelper.ImUser
 }
 
-func fetchSearchSelectedUserMsg(user *sqllite.ImUser) tea.Cmd {
+func fetchSearchSelectedUserMsg(user *dbhelper.ImUser) tea.Cmd {
 	return func() tea.Msg {
 		return searchSelectedUserMsg{
 			user: user,
@@ -200,13 +200,13 @@ func fetchSearchSelectedUserMsg(user *sqllite.ImUser) tea.Cmd {
 
 type searchUserMsg struct {
 	key   string
-	users []*sqllite.ImUser
+	users []*dbhelper.ImUser
 	err   error
 }
 
 func fetchSearchUserMsg(key string) tea.Cmd {
 	return func() tea.Msg {
-		users, err := sqllite.SearchUser(context.Background(), key)
+		users, err := dbhelper.SearchUser(context.Background(), key)
 		return searchUserMsg{
 			key:   key,
 			users: users,

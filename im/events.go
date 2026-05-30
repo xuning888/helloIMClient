@@ -9,12 +9,12 @@ import (
 type EventType int
 
 const (
-	EventConnected EventType = iota
-	EventDisconnected
-	EventConnecting
-	EventMessageReceived
-	EventMessageSent
-	EventError
+	EventConnected       EventType = iota // 连接简历
+	EventDisconnected                     // 连接关闭
+	EventConnecting                       // 连接建立中
+	EventMessageReceived                  // 收到新消息
+	EventMessageSent                      // 消息发送成功
+	EventError                            // 异常事件
 )
 
 // Event SDK 事件

@@ -5,7 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/xuning888/helloIMClient/im"
-	sqllite "github.com/xuning888/helloIMClient/im/dal/sqllite"
+	sqllite "github.com/xuning888/helloIMClient/im/dbhelper"
 )
 
 type chatListUpdatedMsg struct {

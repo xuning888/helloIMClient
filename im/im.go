@@ -3,11 +3,10 @@ package im
 import (
 	"context"
 
-	"github.com/xuning888/helloIMClient/conf"
-	"github.com/xuning888/helloIMClient/im/dal"
-	"github.com/xuning888/helloIMClient/im/dal/sqllite"
-	http2 "github.com/xuning888/helloIMClient/im/http"
+	"github.com/xuning888/helloIMClient/im/dbhelper"
+	"github.com/xuning888/helloIMClient/im/http"
 	"github.com/xuning888/helloIMClient/im/protocol"
+	"github.com/xuning888/helloIMClient/im/store"
 	"github.com/xuning888/helloIMClient/im/transport"
 )
 
@@ -15,7 +14,7 @@ import (
 type Client struct {
 	addr   string
 	opts   *Options
-	store  *Store
+	store  *store.Store
 	events *callbackRegistry
 	*msgManager
 	*connManager
@@ -28,15 +27,11 @@ func New(addr string, opts ...Option) (*Client, error) {
 		o(options)
 	}
 
-	// 设置全局配置（过渡方案，后续将移除全局状态）
-	conf.UserId = options.UID
-	conf.ServerUrl = addr
-
 	// 初始化 HTTP 客户端
-	http2.Init(addr, options.ConnectTimeout)
+	http.Init(addr, options.ConnectTimeout)
 
 	// 初始化 SQLite
-	if err := dal.Init(); err != nil {
+	if err := dbhelper.Init(options.UID); err != nil {
 		return nil, err
 	}
 
@@ -44,20 +39,18 @@ func New(addr string, opts ...Option) (*Client, error) {
 	events := newCallbackRegistry()
 
 	// 创建存储
-	store := newStore()
-
+	storage := store.NewStore(options.UID)
 	cli := &Client{
 		addr:   addr,
 		opts:   options,
-		store:  store,
 		events: events,
+		store:  storage,
 	}
-
 	// 创建分发器
-	dispatcher := newDispatcher(store, events)
+	dispatcher := newDispatcher(storage, events)
 
 	// 创建 transport
-	tr := transport.NewClient(dispatcher.dispatch, &defaultAddrProvider{}, sqllite.GetSeq)
+	tr := transport.NewClient(options.UID, dispatcher.dispatch, &defaultAddrProvider{}, dbhelper.GetSeq)
 
 	// 创建子管理器
 	cli.msgManager = newMsgManager(cli)
@@ -92,7 +85,7 @@ func (c *Client) SendMessage(ctx context.Context, msg protocol.Message) (protoco
 }
 
 // Storage 获取存储管理器
-func (c *Client) Storage() *Store {
+func (c *Client) Storage() *store.Store {
 	return c.store
 }
 
@@ -110,5 +103,5 @@ func (c *Client) GetUID() int64 {
 type defaultAddrProvider struct{}
 
 func (p *defaultAddrProvider) GetAddr(ctx context.Context) ([]string, error) {
-	return http2.IpList(ctx)
+	return http.IpList(ctx)
 }

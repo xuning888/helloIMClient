@@ -1,4 +1,4 @@
-package sqllite
+package dbhelper
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/xuning888/helloIMClient/conf"
 	"github.com/xuning888/helloIMClient/pkg/logger"
 	"gorm.io/gorm"
 )
@@ -114,10 +113,10 @@ func SelectChat(ctx context.Context, userId, chatId int64) (*ImChat, error) {
 
 // MultiGetChat
 // Note: 查询100条会话
-func MultiGetChat(ctx context.Context) ([]*ImChat, error) {
+func MultiGetChat(ctx context.Context, userId int64) ([]*ImChat, error) {
 	var chats = make([]*ImChat, 0)
 	res := DB.WithContext(ctx).Model(&ImChat{}).
-		Where("user_id = ?", conf.UserId).
+		Where("user_id = ?", userId).
 		Order("chat_top desc").
 		Order("update_timestamp desc").
 		Limit(100).Find(&chats)

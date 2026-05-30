@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/xuning888/helloIMClient/conf"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -14,12 +13,12 @@ import (
 
 var globalLogger *zap.Logger
 
-func InitLogger() error {
+func InitLogger(userId int64) error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
 	}
-	absPath := filepath.Join(homeDir, ".helloIm", fmt.Sprintf("%d", conf.UserId), "log", "app.log")
+	absPath := filepath.Join(homeDir, ".helloIm", fmt.Sprintf("%d", userId), "log", "app.log")
 	dir := filepath.Dir(absPath)
 	if err2 := os.MkdirAll(dir, 0755); err2 != nil {
 		return err2

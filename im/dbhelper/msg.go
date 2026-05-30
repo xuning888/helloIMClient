@@ -1,10 +1,9 @@
-package sqllite
+package dbhelper
 
 import (
 	"context"
 	"encoding/json"
 
-	"github.com/xuning888/helloIMClient/conf"
 	"gorm.io/gorm/clause"
 )
 
@@ -68,8 +67,8 @@ func NewMessage(chatType int32, chatId, msgId int64,
 	return message
 }
 
-func SaveOrUpdateMessage(ctx context.Context, message *ChatMessage) error {
-	if message.MsgFrom == conf.UserId {
+func SaveOrUpdateMessage(ctx context.Context, userId int64, message *ChatMessage) error {
+	if message.MsgFrom == userId {
 		message.ChatID = message.MsgTo
 	} else {
 		message.ChatID = message.MsgFrom

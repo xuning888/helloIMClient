@@ -9,6 +9,7 @@ type Options struct {
 	ConnectTimeout   time.Duration // 连接超时
 	Reconnect        bool          // 是否自动重连
 	KeepLiveInterval time.Duration // 心跳间隔
+	WebApiTimeout    time.Duration // webApi的超时时间
 }
 
 func NewOptions() *Options {

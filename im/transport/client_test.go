@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/xuning888/helloIMClient/conf"
 	"github.com/xuning888/helloIMClient/im/http"
 	"github.com/xuning888/helloIMClient/im/proto"
 	"github.com/xuning888/helloIMClient/im/protocol"
@@ -19,8 +18,6 @@ import (
 
 func TestNewClient(t *testing.T) {
 	logger.InitLogger()
-	conf.UserId = 1
-	conf.UserName = "user1"
 	http.Init("http://127.0.0.1:8087", time.Second*5)
 
 	client := NewClient(testDispatch, &testAddrProvider{}, getSeq)

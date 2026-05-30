@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -37,7 +38,7 @@ func main() {
 		log.Fatal("请输入目标用户 target")
 	}
 
-	if err := logger.InitLogger(); err != nil {
+	if err := logger.InitLogger(math.MaxInt64); err != nil {
 		log.Fatal(err)
 	}
 

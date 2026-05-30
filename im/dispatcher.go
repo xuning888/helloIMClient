@@ -4,20 +4,21 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/xuning888/helloIMClient/im/dal/sqllite"
+	"github.com/xuning888/helloIMClient/im/dbhelper"
 	"github.com/xuning888/helloIMClient/im/payload"
 	pb "github.com/xuning888/helloIMClient/im/proto"
 	"github.com/xuning888/helloIMClient/im/protocol"
 	"github.com/xuning888/helloIMClient/im/protocol/push"
+	"github.com/xuning888/helloIMClient/im/store"
 	"github.com/xuning888/helloIMClient/pkg/logger"
 )
 
 type dispatcher struct {
-	store  *Store
+	store  *store.Store
 	events *callbackRegistry
 }
 
-func newDispatcher(store *Store, events *callbackRegistry) *dispatcher {
+func newDispatcher(store *store.Store, events *callbackRegistry) *dispatcher {
 	return &dispatcher{
 		store:  store,
 		events: events,
@@ -59,7 +60,7 @@ func (d *dispatcher) handlePush(resp protocol.Message) {
 	content, contentType := payload.ExtractContent(response.GetPayload())
 	chatType := response.GetChatType()
 
-	message := sqllite.NewMessage(chatType, msgFrom, response.MsgId(),
+	message := dbhelper.NewMessage(chatType, msgFrom, response.MsgId(),
 		msgFrom, msgTo,
 		response.GetFromUserType(), response.GetToUserType(),
 		response.MsgSeq(), content, contentType,

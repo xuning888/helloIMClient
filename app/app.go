@@ -6,7 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/xuning888/helloIMClient/im"
-	"github.com/xuning888/helloIMClient/im/dal/sqllite"
+	"github.com/xuning888/helloIMClient/im/dbhelper"
 	"github.com/xuning888/helloIMClient/pkg/logger"
 	"github.com/xuning888/helloIMClient/tui"
 )
@@ -54,7 +54,7 @@ func (i *ImApp) registerEventCallbacks() {
 	i.sdk.OnEvent(func(evt im.Event) {
 		switch evt.Type {
 		case im.EventMessageReceived:
-			msg, ok := evt.Data.(*sqllite.ChatMessage)
+			msg, ok := evt.Data.(*dbhelper.ChatMessage)
 			if !ok {
 				return
 			}
@@ -62,7 +62,7 @@ func (i *ImApp) registerEventCallbacks() {
 			if cmd := tui.FetchUpdatedChatListCmd(i.sdk); cmd != nil {
 				i.program.Send(cmd())
 			}
-			if cmd := tui.FetchUpdateMessage(msg.ChatID, []*sqllite.ChatMessage{msg}); cmd != nil {
+			if cmd := tui.FetchUpdateMessage(msg.ChatID, []*dbhelper.ChatMessage{msg}); cmd != nil {
 				i.program.Send(cmd())
 			}
 		case im.EventConnected:

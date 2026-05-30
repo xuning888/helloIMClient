@@ -1,4 +1,4 @@
-package sqllite
+package dbhelper
 
 import (
 	"gorm.io/driver/sqlite"
@@ -9,7 +9,7 @@ import (
 
 var DB *gorm.DB
 
-func Init(DSN string) error {
+func initDB(DSN string) error {
 	var err error
 	DB, err = gorm.Open(sqlite.Open(DSN), &gorm.Config{
 		Logger: logger.NewGormLogger(),

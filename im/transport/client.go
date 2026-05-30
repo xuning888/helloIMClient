@@ -8,8 +8,7 @@ import (
 	"time"
 
 	"github.com/panjf2000/gnet/v2"
-	"github.com/xuning888/helloIMClient/conf"
-	protocol2 "github.com/xuning888/helloIMClient/im/protocol"
+	"github.com/xuning888/helloIMClient/im/protocol"
 	"github.com/xuning888/helloIMClient/pkg/logger"
 )
 
@@ -36,6 +35,7 @@ type AddrProvider interface {
 
 // Client 传输层客户端，管理连接生命周期 + 消息收发
 type Client struct {
+	uid int64
 	gnet.BuiltinEventEngine
 
 	log logger.Logger
@@ -56,7 +56,7 @@ type Client struct {
 
 	// 子组件
 	sender   *sender
-	dispatch func(protocol2.Message)
+	dispatch func(protocol.Message)
 
 	// 地址
 	addrProvider AddrProvider
@@ -68,9 +68,10 @@ type Client struct {
 }
 
 // NewClient 创建传输客户端
-func NewClient(dispatch func(protocol2.Message), addrProvider AddrProvider, getSeq GetSeq) *Client {
+func NewClient(uid int64, dispatch func(protocol.Message), addrProvider AddrProvider, getSeq GetSeq) *Client {
 	ctx, cancel := context.WithCancel(context.Background())
 	c := &Client{
+		uid:          uid,
 		log:          logger.Named("transport"),
 		state:        atomic.Int32{},
 		addrProvider: addrProvider,
@@ -85,7 +86,7 @@ func NewClient(dispatch func(protocol2.Message), addrProvider AddrProvider, getS
 
 // Connect 建立连接
 func (c *Client) Connect(ctx context.Context) error {
-	if !c.connIsNil() {
+	if c.State() == StateConnected {
 		return nil
 	}
 	if !c.connecting.CompareAndSwap(false, true) {
@@ -107,7 +108,7 @@ func (c *Client) Connect(ctx context.Context) error {
 }
 
 // Send 发送消息
-func (c *Client) Send(ctx context.Context, msg protocol2.Message) (protocol2.Message, error) {
+func (c *Client) Send(ctx context.Context, msg protocol.Message) (protocol.Message, error) {
 	if c.State() != StateConnected {
 		return nil, errors.New("transport: not connected")
 	}
@@ -141,7 +142,7 @@ func (c *Client) OnTraffic(gconn gnet.Conn) gnet.Action {
 		if frame == nil {
 			return action
 		}
-		if frame.Header.Req == protocol2.RES {
+		if frame.Header.Req == protocol.RES {
 			// ACK 响应：完成 sender 中的 promise
 			c.sender.complete(frame)
 		} else {
@@ -244,7 +245,7 @@ func (c *Client) trySlave() string {
 }
 
 func (c *Client) auth(ctx context.Context) error {
-	msg := NewAuthRequest(conf.UserId, 0, "")
+	msg := NewAuthRequest(c.uid, 0, "")
 	conn := c.getConn()
 	if conn == nil {
 		return errors.New("no connection for auth")
@@ -342,12 +343,6 @@ func (c *Client) getConn() gnet.Conn {
 	c.connMu.RLock()
 	defer c.connMu.RUnlock()
 	return c.conn
-}
-
-func (c *Client) connIsNil() bool {
-	c.connMu.RLock()
-	defer c.connMu.RUnlock()
-	return c.conn == nil
 }
 
 func (c *Client) setState(state ConnState) {
