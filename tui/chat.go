@@ -165,7 +165,7 @@ func (m chatModel) saveSentMessage(req *send.SendMsg, ack *send.SendAck) *dbhelp
 }
 
 func (m chatModel) viewMessage() string {
-	chatMessages := m.messages
+	chatMessages := m.sdk.LoadMessages(m.chat)
 	if len(chatMessages) == 0 {
 		return lipgloss.Place(m.viewport.Width, m.viewport.Height, lipgloss.Center, lipgloss.Center,
 			"暂无消息，开始对话吧！")
