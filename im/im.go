@@ -31,7 +31,7 @@ func New(addr string, opts ...Option) (*Client, error) {
 	http.Init(addr, options.ConnectTimeout)
 
 	// 初始化 SQLite
-	if err := dbhelper.Init(options.UID); err != nil {
+	if err := dbhelper.Init(options.UID, addr); err != nil {
 		return nil, err
 	}
 

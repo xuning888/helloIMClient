@@ -33,7 +33,7 @@ func main() {
 	if ServerUrl == "" {
 		log.Fatal("请输入服务器地址")
 	}
-	if err := logger.InitLogger(UserId); err != nil {
+	if err := logger.InitLogger(UserId, ServerUrl); err != nil {
 		log.Fatal(err)
 	}
 

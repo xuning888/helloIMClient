@@ -2,8 +2,10 @@ package logger
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -13,12 +15,16 @@ import (
 
 var globalLogger *zap.Logger
 
-func InitLogger(userId int64) error {
+func InitLogger(userId int64, serverUrl string) error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
 	}
-	absPath := filepath.Join(homeDir, ".helloIm", fmt.Sprintf("%d", userId), "log", "app.log")
+	u, err := url.Parse(serverUrl)
+	if err != nil {
+		return err
+	}
+	absPath := filepath.Join(homeDir, ".helloIm", strings.ReplaceAll(u.Host, ":", "_"), fmt.Sprintf("%d", userId), "log", "app.log")
 	dir := filepath.Dir(absPath)
 	if err2 := os.MkdirAll(dir, 0755); err2 != nil {
 		return err2

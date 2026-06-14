@@ -247,7 +247,8 @@ func (c *Conn) auth(ctx context.Context) error {
 	if conn == nil {
 		return errors.New("no connection for auth")
 	}
-	resp, err := c.sender.send(ctx, conn, msg, 5*time.Second)
+	seq := c.sender.getSeq()
+	resp, err := c.sender.send(ctx, conn, msg, seq, 5*time.Second)
 	if err != nil {
 		return err
 	}

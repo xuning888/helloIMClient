@@ -53,8 +53,7 @@ func (s *Sender) startDispatchWorkers(n int) {
 }
 
 // send 停等协议：分配 seq，编码写出，等待 ACK
-func (s *Sender) send(ctx context.Context, conn gnet.Conn, msg protocol.Message, timeout time.Duration) (protocol.Message, error) {
-	seq := s.getSeq()
+func (s *Sender) send(ctx context.Context, conn gnet.Conn, msg protocol.Message, seq int32, timeout time.Duration) (protocol.Message, error) {
 	frame, err := protocol.EncodeMessageToFrame(seq, protocol.REQ, msg)
 	if err != nil {
 		return nil, err
@@ -73,12 +72,13 @@ func (s *Sender) send(ctx context.Context, conn gnet.Conn, msg protocol.Message,
 // sendWithRetry 带重试的停等发送
 func (s *Sender) sendWithRetry(ctx context.Context, conn gnet.Conn, msg protocol.Message, timeout time.Duration, maxRetry int) (protocol.Message, error) {
 	var lastErr error
+	seq := s.getSeq()
 	for attempt := 0; attempt < maxRetry; attempt++ {
 		if attempt > 0 {
 			delay := backoff(attempt, 100*time.Millisecond, 1*time.Second)
 			time.Sleep(delay)
 		}
-		resp, err := s.send(ctx, conn, msg, timeout)
+		resp, err := s.send(ctx, conn, msg, seq, timeout)
 		if err == nil {
 			return resp, nil
 		}
@@ -91,7 +91,7 @@ func (s *Sender) sendWithRetry(ctx context.Context, conn gnet.Conn, msg protocol
 // Complete 完成 promise（ACK 到达时调用）
 func (s *Sender) Complete(frame *protocol.Frame) {
 	seq := frame.Header.Seq
-	if val, ok := s.requests.Load(seq); ok {
+	if val, ok := s.requests.LoadAndDelete(seq); ok {
 		if p, ok := val.(*promise); ok {
 			p.complete(frame)
 		}
@@ -110,8 +110,11 @@ func (s *Sender) DispatchFrame(frame *protocol.Frame, conn gnet.Conn) {
 
 // sendAck 发送推送消息的 ACK
 func sendAck(conn gnet.Conn, frame *protocol.Frame) {
-	ack := protocol.MakeResFrame(frame)
-	writeFrame(conn, ack)
+	req := frame.Header.Req
+	if req == protocol.REQ {
+		ack := protocol.MakeResFrame(frame)
+		writeFrame(conn, ack)
+	}
 }
 
 // SendPing 发送心跳

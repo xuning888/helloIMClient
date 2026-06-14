@@ -9,18 +9,18 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/xuning888/helloIMClient/im/dbhelper"
 	"github.com/xuning888/helloIMClient/im/http"
 	"github.com/xuning888/helloIMClient/im/proto"
 	"github.com/xuning888/helloIMClient/im/protocol"
 	"github.com/xuning888/helloIMClient/im/protocol/send"
-	"github.com/xuning888/helloIMClient/pkg/logger"
 )
 
 func TestNewClient(t *testing.T) {
-	logger.InitLogger()
 	http.Init("http://127.0.0.1:8087", time.Second*5)
 
-	client := NewConn(testDispatch, &testAddrProvider{}, getSeq)
+	sender := NewSender(dbhelper.GetSeq, nil)
+	client := NewConn(1, &testAddrProvider{}, sender)
 	if err := client.Connect(context.Background()); err != nil {
 		t.Fatal(err)
 	}
@@ -54,9 +54,9 @@ func TestImClient_WriteMessage(t *testing.T) {
 }
 
 func writeMessage(i int, t *testing.T) {
-	logger.InitLogger()
 	http.Init("http://127.0.0.1:8087", time.Second*5)
-	client := NewConn(testDispatch, &testAddrProvider{}, getSeq)
+	sender := NewSender(dbhelper.GetSeq, nil)
+	client := NewConn(1, &testAddrProvider{}, sender)
 	if err := client.Connect(context.Background()); err != nil {
 		t.Fatal(err)
 	}
